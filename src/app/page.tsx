@@ -35,10 +35,17 @@ export default function DashboardPage() {
         url += `&start=${customStart}&end=${customEnd}`
       }
       const res = await fetch(url)
-      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`)
+      }
+      const text = await res.text()
+      if (!text) {
+        throw new Error('Empty response received from server')
+      }
+      const json = JSON.parse(text)
       setData(json)
     } catch (err) {
-      console.error(err)
+      console.error('Failed to load dashboard:', err)
     } finally {
       setLoading(false)
     }

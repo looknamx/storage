@@ -264,3 +264,4 @@ app.on('before-quit', () => {
     serverProcess.kill()
   }
 })
+

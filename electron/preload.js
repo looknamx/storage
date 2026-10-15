@@ -9,3 +9,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('updater-status', subscription)
   },
 })
+
