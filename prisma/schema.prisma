@@ -1,0 +1,355 @@
+// Prisma Schema for Garage Storage & Fleet Vehicle Maintenance Management System
+// Database: SQLite (stored at ./data/storage.db)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/storage.db"
+}
+
+// ==================== ข้อมูลรถบริษัท ====================
+
+model Vehicle {
+  id              String   @id @default(cuid())
+  code            String   @unique // รหัสรถภายใน
+  licensePlate    String   @unique // ทะเบียนรถ
+  province        String   // จังหวัดทะเบียน
+  brand           String   // ยี่ห้อ
+  model           String   // รุ่น
+  vehicleType     String   // ประเภทรถ
+  year            Int?     // ปีรถ
+  vin             String?  // เลขตัวถัง VIN
+  engineNumber    String?  // เลขเครื่องยนต์
+  department      String?  // หน่วยงาน/แผนก
+  responsiblePerson String? // ผู้ดูแลรถ
+  startDate       DateTime? // วันที่เริ่มใช้งาน
+  currentMileage  Float    @default(0) // เลขไมล์ล่าสุด
+  mileageDate     DateTime? // วันที่อัปเดตเลขไมล์ล่าสุด
+  status          String   @default("active") // active, waiting_repair, repairing, waiting_parts, inactive, decommissioned
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  odometerReadings  OdometerReading[]
+  repairOrders      RepairOrder[]
+  partIssues        PartIssue[]
+  maintenancePlans  MaintenancePlan[]
+  maintenanceRecords MaintenanceRecord[]
+}
+
+model OdometerReading {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  reading     Float    // เลขไมล์
+  readingDate DateTime // วันที่อ่าน
+  source      String   @default("manual") // manual, repair_order, maintenance
+  referenceId String?  // อ้างอิงใบงานหรือรายการบำรุงรักษา
+  notes       String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+// ==================== คลังอะไหล่ ====================
+
+model PartCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parts Part[]
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  contactInfo String?
+  address     String?
+  phone       String?
+  email       String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parts             Part[]
+  stockReceipts     StockReceipt[]
+}
+
+model Part {
+  id              String   @id @default(cuid())
+  code            String   @unique // รหัสอะไหล่
+  name            String   // ชื่ออะไหล่
+  categoryId      String?  // หมวดหมู่
+  brand           String?  // ยี่ห้อ
+  compatibleModels String? // รุ่นที่ใช้ได้
+  unit            String   @default("ชิ้น") // หน่วยนับ
+  quantity        Float    @default(0) // จำนวนคงเหลือ
+  minimumStock    Float    @default(0) // จำนวนขั้นต่ำ
+  costPerUnit     Float    @default(0) // ราคาทุนต่อหน่วย
+  location        String?  // ตำแหน่งจัดเก็บ
+  supplierId      String?  // ผู้จำหน่าย
+  description     String?
+  notes           String?
+  isActive        Boolean  @default(true) // สถานะการใช้งาน
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category          PartCategory?      @relation(fields: [categoryId], references: [id])
+  supplier          Supplier?          @relation(fields: [supplierId], references: [id])
+  stockReceiptItems StockReceiptItem[]
+  partIssueItems    PartIssueItem[]
+  inventoryTransactions InventoryTransaction[]
+}
+
+// ==================== รับอะไหล่เข้า ====================
+
+model StockReceipt {
+  id              String   @id @default(cuid())
+  receiptNumber   String   @unique // เลขที่เอกสารรับเข้า
+  receiptDate     DateTime // วันที่รับเข้า
+  supplierId      String?  // ผู้จำหน่าย
+  purchaseOrderRef String? // เลขที่ใบสั่งซื้อ
+  receivedBy      String?  // ผู้รับสินค้า
+  totalAmount     Float    @default(0) // มูลค่ารวม
+  notes           String?
+  status          String   @default("completed") // draft, completed, cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  items    StockReceiptItem[]
+}
+
+model StockReceiptItem {
+  id            String   @id @default(cuid())
+  receiptId     String
+  partId        String
+  quantity      Float    // จำนวน
+  costPerUnit   Float    // ราคาทุนต่อหน่วย
+  totalCost     Float    // ราคารวม
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  receipt StockReceipt @relation(fields: [receiptId], references: [id])
+  part    Part         @relation(fields: [partId], references: [id])
+}
+
+// ==================== เบิกจ่ายอะไหล่ ====================
+
+model PartIssue {
+  id              String   @id @default(cuid())
+  issueNumber     String   @unique // เลขที่ใบเบิก
+  issueDate       DateTime // วันที่เบิก
+  vehicleId       String?  // ทะเบียนรถปลายทาง
+  repairOrderId   String?  // เลขที่ใบงานซ่อม
+  issuedBy        String?  // ผู้เบิก
+  totalAmount     Float    @default(0) // มูลค่ารวม
+  notes           String?
+  status          String   @default("completed") // draft, completed, cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  vehicle     Vehicle?     @relation(fields: [vehicleId], references: [id])
+  repairOrder RepairOrder? @relation(fields: [repairOrderId], references: [id])
+  items       PartIssueItem[]
+  partReturns PartReturn[]
+}
+
+model PartIssueItem {
+  id            String   @id @default(cuid())
+  issueId       String
+  partId        String
+  quantity      Float    // จำนวนที่เบิก
+  costPerUnit   Float    // ราคาทุนต่อหน่วย
+  totalCost     Float    // ราคารวม
+  returnedQty   Float    @default(0) // จำนวนที่คืนแล้ว
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  issue PartIssue @relation(fields: [issueId], references: [id])
+  part  Part      @relation(fields: [partId], references: [id])
+}
+
+// ==================== คืนอะไหล่ ====================
+
+model PartReturn {
+  id            String   @id @default(cuid())
+  returnNumber  String   @unique // เลขที่ใบคืน
+  returnDate    DateTime // วันที่คืน
+  issueId       String   // อ้างอิงใบเบิก
+  partId        String   // อะไหล่ที่คืน
+  quantity      Float    // จำนวนที่คืน
+  condition     String   @default("good") // good, damaged
+  reason        String?  // เหตุผล
+  returnedBy    String?  // ผู้ทำรายการ
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  issue PartIssue @relation(fields: [issueId], references: [id])
+}
+
+// ==================== ประวัติการเคลื่อนไหวสต็อก ====================
+
+model InventoryTransaction {
+  id              String   @id @default(cuid())
+  partId          String
+  transactionType String   // receive, issue, return, adjust
+  quantity        Float    // จำนวน (บวก = เพิ่ม, ลบ = ลด)
+  previousQty     Float    // จำนวนก่อนทำรายการ
+  newQty          Float    // จำนวนหลังทำรายการ
+  referenceType   String?  // receipt, issue, return, adjustment
+  referenceId     String?  // เลขอ้างอิงเอกสาร
+  referenceNumber String?  // เลขที่เอกสาร
+  vehicleId       String?  // ทะเบียนรถ (ถ้ามี)
+  repairOrderId   String?  // ใบงานซ่อม (ถ้ามี)
+  reason          String?  // เหตุผล
+  performedBy     String?  // ผู้ทำรายการ
+  transactionDate DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  part Part @relation(fields: [partId], references: [id])
+}
+
+// ==================== ใบงานซ่อม ====================
+
+model RepairOrder {
+  id                String    @id @default(cuid())
+  orderNumber       String    @unique // เลขที่ใบงาน
+  vehicleId         String    // ทะเบียนรถ
+  mileageAtRepair   Float?    // เลขไมล์ขณะเข้าซ่อม
+  reportedBy        String?   // ผู้แจ้งซ่อม
+  department        String?   // หน่วยงาน
+  reportedSymptoms  String?   // อาการที่แจ้ง
+  diagnosis         String?   // ผลการตรวจสอบ
+  assignedTo        String?   // ผู้รับผิดชอบงานซ่อม
+  laborCost         Float     @default(0) // ค่าแรง
+  partsCost         Float     @default(0) // ค่าอะไหล่
+  otherCost         Float     @default(0) // ค่าใช้จ่ายอื่น
+  totalCost         Float     @default(0) // ค่าใช้จ่ายรวม
+  status            String    @default("open") // open, inspecting, waiting_parts, repairing, testing, completed, delivered, cancelled
+  orderDate         DateTime  @default(now()) // วันที่เปิดใบงาน
+  startDate         DateTime? // วันที่เริ่มซ่อม
+  completedDate     DateTime? // วันที่ซ่อมเสร็จ
+  deliveredDate     DateTime? // วันที่ส่งมอบรถ
+  testResult        String?   // ผลการทดสอบหลังซ่อม
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  vehicle    Vehicle          @relation(fields: [vehicleId], references: [id])
+  items      RepairOrderItem[]
+  partIssues PartIssue[]
+}
+
+model RepairOrderItem {
+  id            String   @id @default(cuid())
+  repairOrderId String
+  description   String   // รายละเอียดงานซ่อม
+  laborCost     Float    @default(0) // ค่าแรงรายการนี้
+  partsCost     Float    @default(0) // ค่าอะไหล่รายการนี้
+  otherCost     Float    @default(0) // ค่าใช้จ่ายอื่น
+  status        String   @default("pending") // pending, in_progress, completed
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  repairOrder RepairOrder @relation(fields: [repairOrderId], references: [id])
+}
+
+// ==================== แผนซ่อมบำรุง ====================
+
+model MaintenancePlan {
+  id                  String   @id @default(cuid())
+  vehicleId           String
+  name                String   // ชื่อรายการบำรุงรักษา
+  intervalMonths      Int?     // รอบระยะเวลา (เดือน)
+  intervalKm          Float?   // รอบระยะทาง (กม.)
+  lastPerformedDate   DateTime? // วันที่ทำครั้งล่าสุด
+  lastPerformedMileage Float?  // เลขไมล์ครั้งล่าสุด
+  nextDueDate         DateTime? // วันที่ครบกำหนดครั้งถัดไป
+  nextDueMileage      Float?   // เลขไมล์ที่ครบกำหนดครั้งถัดไป
+  advanceWarningDays  Int      @default(30) // เตือนล่วงหน้า (วัน)
+  advanceWarningKm    Float    @default(1000) // เตือนล่วงหน้า (กม.)
+  status              String   @default("normal") // normal, upcoming, due, overdue
+  isActive            Boolean  @default(true)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  records MaintenanceRecord[]
+}
+
+model MaintenanceRecord {
+  id                String   @id @default(cuid())
+  planId            String
+  vehicleId         String
+  performedDate     DateTime // วันที่ดำเนินการ
+  mileageAtService  Float?   // เลขไมล์ขณะบำรุงรักษา
+  description       String?  // รายละเอียด
+  cost              Float    @default(0) // ค่าใช้จ่าย
+  performedBy       String?  // ผู้ดำเนินการ
+  repairOrderId     String?  // ใบงานซ่อมที่เกี่ยวข้อง
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  plan    MaintenancePlan @relation(fields: [planId], references: [id])
+  vehicle Vehicle         @relation(fields: [vehicleId], references: [id])
+}
+
+// ==================== การแจ้งเตือน ====================
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // maintenance_due, low_stock, overdue_repair, etc.
+  title       String
+  message     String
+  referenceType String? // vehicle, part, repair_order, maintenance_plan
+  referenceId String?
+  isRead      Boolean  @default(false)
+  priority    String   @default("normal") // low, normal, high, critical
+  createdAt   DateTime @default(now())
+}
+
+// ==================== บันทึกการดำเนินงาน ====================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // create, update, delete, cancel, adjust
+  entityType  String   // vehicle, part, repair_order, etc.
+  entityId    String
+  description String?
+  oldValue    String?  // JSON of old values
+  newValue    String?  // JSON of new values
+  performedBy String?
+  createdAt   DateTime @default(now())
+}
+
+// ==================== ตั้งค่าระบบ ====================
+
+model AppSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  label String?
+  group String? // general, notification, backup, etc.
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== ประเภทรถ ====================
+
+model VehicleType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
