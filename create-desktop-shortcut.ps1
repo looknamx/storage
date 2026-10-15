@@ -13,3 +13,4 @@ $Shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,71"
 $Shortcut.Save()
 
 Write-Host "Desktop shortcut created successfully at: $ShortcutPath" -ForegroundColor Green
+
