@@ -1,12 +1,67 @@
 {
-  "name": "storage",
-  "version": "0.1.0",
+  "name": "storage-fleet-management",
+  "version": "1.0.0",
+  "description": "ระบบบริหารรถบริษัท คลังอะไหล่ และประวัติซ่อมบำรุง",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "electron:start": "cross-env NODE_ENV=production electron .",
+    "electron:pack": "electron-builder --dir",
+    "electron:dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.looknamx.fleetstorage",
+    "productName": "FleetStorage",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "looknamx",
+        "repo": "storage"
+      }
+    ],
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "data/**/*",
+      "prisma/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "data",
+        "to": "data",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Fleet Storage Management"
+    }
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -25,9 +80,15 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9",
     "eslint": "^9",
     "eslint-config-next": "16.4.1",
+    "get-port": "^7.2.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.5.1"
   }
 }
