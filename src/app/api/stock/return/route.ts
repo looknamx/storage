@@ -2,6 +2,44 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { generateDocumentNumber } from '@/lib/utils'
 
+export async function GET() {
+  try {
+    const returns = await prisma.partReturn.findMany({
+      orderBy: { returnDate: 'desc' },
+      include: {
+        issue: {
+          include: {
+            vehicle: true,
+            repairOrder: true,
+            items: {
+              include: {
+                part: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    // Fetch part details by partId for each return
+    const partIds = [...new Set(returns.map((r) => r.partId))]
+    const parts = await prisma.part.findMany({
+      where: { id: { in: partIds } },
+    })
+    const partMap = new Map(parts.map((p) => [p.id, p]))
+
+    const enrichedReturns = returns.map((r) => ({
+      ...r,
+      part: partMap.get(r.partId) || null,
+    }))
+
+    return NextResponse.json(enrichedReturns)
+  } catch (error) {
+    console.error('Error fetching part returns:', error)
+    return NextResponse.json({ error: 'ไม่สามารถดึงข้อมูลรายการคืนอะไหล่ได้' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()

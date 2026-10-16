@@ -42,6 +42,8 @@ export default function MaintenancePage() {
   const [successMessage, setSuccessMessage] = useState('')
 
   // Add Plan Form
+  const [useMonths, setUseMonths] = useState(true)
+  const [useKm, setUseKm] = useState(true)
   const [formData, setFormData] = useState({
     vehicleId: '',
     name: '',
@@ -55,6 +57,8 @@ export default function MaintenancePage() {
   })
 
   // Edit Plan Form
+  const [editUseMonths, setEditUseMonths] = useState(true)
+  const [editUseKm, setEditUseKm] = useState(true)
   const [editFormData, setEditFormData] = useState<any>({
     id: '',
     name: '',
@@ -118,11 +122,23 @@ export default function MaintenancePage() {
     setErrorMessage('')
     setSuccessMessage('')
 
+    if (!useMonths && !useKm) {
+      setErrorMessage('กรุณาเลือกเงื่อนไขการแจ้งเตือนอย่างน้อย 1 อย่าง (ตามระยะเวลา หรือ ตามระยะทาง)')
+      setSubmitting(false)
+      return
+    }
+
     try {
+      const payload = {
+        ...formData,
+        intervalMonths: useMonths ? formData.intervalMonths : null,
+        intervalKm: useKm ? formData.intervalKm : null,
+      }
+
       const res = await fetch('/api/maintenance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -175,11 +191,15 @@ export default function MaintenancePage() {
 
   const handleOpenEditModal = (plan: any) => {
     setSelectedPlan(plan)
+    const hasMonths = plan.intervalMonths !== null && plan.intervalMonths !== undefined && plan.intervalMonths > 0
+    const hasKm = plan.intervalKm !== null && plan.intervalKm !== undefined && plan.intervalKm > 0
+    setEditUseMonths(hasMonths || (!hasMonths && !hasKm))
+    setEditUseKm(hasKm)
     setEditFormData({
       id: plan.id,
       name: plan.name,
-      intervalMonths: plan.intervalMonths !== null && plan.intervalMonths !== undefined ? plan.intervalMonths : '',
-      intervalKm: plan.intervalKm !== null && plan.intervalKm !== undefined ? plan.intervalKm : '',
+      intervalMonths: hasMonths ? plan.intervalMonths : 6,
+      intervalKm: hasKm ? plan.intervalKm : 10000,
       lastPerformedDate: plan.lastPerformedDate ? new Date(plan.lastPerformedDate).toISOString().split('T')[0] : '',
       lastPerformedMileage: plan.lastPerformedMileage !== null && plan.lastPerformedMileage !== undefined
         ? plan.lastPerformedMileage
@@ -198,11 +218,23 @@ export default function MaintenancePage() {
     setErrorMessage('')
     setSuccessMessage('')
 
+    if (!editUseMonths && !editUseKm) {
+      setErrorMessage('กรุณาเลือกเงื่อนไขการแจ้งเตือนอย่างน้อย 1 อย่าง (ตามระยะเวลา หรือ ตามระยะทาง)')
+      setSubmitting(false)
+      return
+    }
+
     try {
+      const payload = {
+        ...editFormData,
+        intervalMonths: editUseMonths ? editFormData.intervalMonths : null,
+        intervalKm: editUseKm ? editFormData.intervalKm : null,
+      }
+
       const res = await fetch('/api/maintenance', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -545,44 +577,71 @@ export default function MaintenancePage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    รอบระยะเวลา (เดือน)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="เช่น 6"
-                    value={formData.intervalMonths || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        intervalMonths: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
-                  />
-                </div>
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <label className="block text-xs font-bold text-slate-800">
+                  เลือกเงื่อนไขการแจ้งเตือน (สามารถเลือกอย่างใดอย่างหนึ่ง หรือทั้ง 2 อย่าง) <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Checkbox 1: ตามระยะเวลา */}
+                  <div className={`p-3 rounded-xl border transition ${useMonths ? 'bg-white border-blue-400 shadow-xs' : 'bg-slate-100/70 border-slate-200 opacity-60'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={useMonths}
+                        onChange={(e) => setUseMonths(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span>เตือนตามรอบระยะเวลา</span>
+                    </label>
+                    <div>
+                      <label className="block text-[11px] text-slate-500 mb-1">รอบระยะเวลา (เดือน)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        disabled={!useMonths}
+                        placeholder="เช่น 6 หรือ 12"
+                        value={formData.intervalMonths || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            intervalMonths: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    รอบระยะทาง (กม.)
-                  </label>
-                  <input
-                    type="number"
-                    min="100"
-                    step="100"
-                    placeholder="เช่น 10000"
-                    value={formData.intervalKm || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        intervalKm: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
-                  />
+                  {/* Checkbox 2: ตามระยะทาง */}
+                  <div className={`p-3 rounded-xl border transition ${useKm ? 'bg-white border-blue-400 shadow-xs' : 'bg-slate-100/70 border-slate-200 opacity-60'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={useKm}
+                        onChange={(e) => setUseKm(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span>เตือนตามรอบระยะทาง</span>
+                    </label>
+                    <div>
+                      <label className="block text-[11px] text-slate-500 mb-1">รอบระยะทาง (กม.)</label>
+                      <input
+                        type="number"
+                        min="100"
+                        step="100"
+                        disabled={!useKm}
+                        placeholder="เช่น 10000"
+                        value={formData.intervalKm || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            intervalKm: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -850,46 +909,71 @@ export default function MaintenancePage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    รอบระยะเวลา (เดือน)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="เช่น 6 หรือ 12"
-                    value={editFormData.intervalMonths}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        intervalMonths: e.target.value ? parseInt(e.target.value) : '',
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
-                  />
-                  <span className="text-[10px] text-slate-400">เว้นว่างหากไม่กำหนดรอบเดือน</span>
-                </div>
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <label className="block text-xs font-bold text-slate-800">
+                  เลือกเงื่อนไขการแจ้งเตือน (สามารถเลือกอย่างใดอย่างหนึ่ง หรือทั้ง 2 อย่าง) <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Checkbox 1: ตามระยะเวลา */}
+                  <div className={`p-3 rounded-xl border transition ${editUseMonths ? 'bg-white border-blue-400 shadow-xs' : 'bg-slate-100/70 border-slate-200 opacity-60'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={editUseMonths}
+                        onChange={(e) => setEditUseMonths(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span>เตือนตามรอบระยะเวลา</span>
+                    </label>
+                    <div>
+                      <label className="block text-[11px] text-slate-500 mb-1">รอบระยะเวลา (เดือน)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        disabled={!editUseMonths}
+                        placeholder="เช่น 6 หรือ 12"
+                        value={editFormData.intervalMonths || ''}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            intervalMonths: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    รอบระยะทาง (กิโลเมตร)
-                  </label>
-                  <input
-                    type="number"
-                    min="500"
-                    step="500"
-                    placeholder="เช่น 10000"
-                    value={editFormData.intervalKm}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        intervalKm: e.target.value ? parseFloat(e.target.value) : '',
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
-                  />
-                  <span className="text-[10px] text-slate-400">เว้นว่างหากไม่กำหนดรอบไมล์</span>
+                  {/* Checkbox 2: ตามระยะทาง */}
+                  <div className={`p-3 rounded-xl border transition ${editUseKm ? 'bg-white border-blue-400 shadow-xs' : 'bg-slate-100/70 border-slate-200 opacity-60'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold text-xs text-slate-800 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={editUseKm}
+                        onChange={(e) => setEditUseKm(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span>เตือนตามรอบระยะทาง</span>
+                    </label>
+                    <div>
+                      <label className="block text-[11px] text-slate-500 mb-1">รอบระยะทาง (กม.)</label>
+                      <input
+                        type="number"
+                        min="100"
+                        step="100"
+                        disabled={!editUseKm}
+                        placeholder="เช่น 10000"
+                        value={editFormData.intervalKm || ''}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            intervalKm: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

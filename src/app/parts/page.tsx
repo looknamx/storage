@@ -420,7 +420,7 @@ export default function PartsInventoryPage() {
                           {p.quantity.toLocaleString()} {p.unit}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          ขั้นต่ำ {p.minimumStock} {p.unit}
+                          เตือนเมื่อต่ำกว่า {p.minimumStock} {p.unit}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -592,7 +592,7 @@ export default function PartsInventoryPage() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    จุดสั่งซื้อขั้นต่ำ (Reorder point)
+                    จำนวนขั้นต่ำที่จะแจ้งเตือน
                   </label>
                   <input
                     type="number"
@@ -604,6 +604,7 @@ export default function PartsInventoryPage() {
                     }
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
                   />
+                  <span className="text-[10px] text-slate-400">ระบบจะแจ้งเตือนเมื่อยอดคงเหลือลดลงถึงหรือต่ำกว่าจำนวนนี้</span>
                 </div>
 
                 <div>

@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   X,
   History,
+  Eye,
+  Package,
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
@@ -38,6 +40,10 @@ export default function StockInPage() {
   const [items, setItems] = useState<ReceiveItem[]>([
     { partId: '', quantity: 1, costPerUnit: 0, notes: '' },
   ])
+
+  // Receipt Detail Modal State
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -359,9 +365,19 @@ export default function StockInPage() {
           <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
             {recentReceipts.length > 0 ? (
               recentReceipts.slice(0, 10).map((rec) => (
-                <div key={rec.id} className="py-3 text-xs">
+                <div
+                  key={rec.id}
+                  onClick={() => {
+                    setSelectedReceipt(rec)
+                    setIsDetailModalOpen(true)
+                  }}
+                  className="py-3 px-2 text-xs rounded-xl hover:bg-slate-50 transition cursor-pointer group"
+                >
                   <div className="flex items-center justify-between font-medium">
-                    <span className="font-mono text-slate-800">{rec.receiptNumber}</span>
+                    <span className="font-mono text-slate-800 group-hover:text-blue-600 transition flex items-center gap-1">
+                      {rec.receiptNumber}
+                      <Eye className="h-3 w-3 text-slate-400 group-hover:text-blue-600" />
+                    </span>
                     <span className="font-bold text-emerald-700">
                       {formatCurrency(rec.totalAmount)}
                     </span>
@@ -371,7 +387,7 @@ export default function StockInPage() {
                   </div>
                   <div className="text-[11px] text-slate-400 mt-0.5 flex justify-between">
                     <span>{formatDate(rec.receiptDate)}</span>
-                    <span>{rec.items?.length || 0} รายการ</span>
+                    <span className="text-blue-600 font-medium group-hover:underline">คลิกดู {rec.items?.length || 0} รายการอะไหล่ →</span>
                   </div>
                 </div>
               ))
@@ -383,6 +399,112 @@ export default function StockInPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal View Receipt Details */}
+      {isDetailModalOpen && selectedReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl relative space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    รายละเอียดการรับอะไหล่เข้าคลัง
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    เลขที่เอกสาร: {selectedReceipt.receiptNumber}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Receipt Summary Header */}
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl text-xs">
+              <div>
+                <span className="text-slate-400 block">วันที่รับเข้า:</span>
+                <span className="font-medium text-slate-700">{formatDate(selectedReceipt.receiptDate)}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">ผู้รับเข้า:</span>
+                <span className="font-medium text-slate-700">{selectedReceipt.receivedBy || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">เลขที่ใบสั่งซื้อ (PO/ใบส่งของ):</span>
+                <span className="font-medium text-slate-700">{selectedReceipt.purchaseOrderRef || '-'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">มูลค่ารวมทั้งสิ้น:</span>
+                <span className="font-bold text-emerald-600 text-sm">{formatCurrency(selectedReceipt.totalAmount)}</span>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div>
+              <div className="text-xs font-bold text-slate-700 mb-2">
+                รายการอะไหล่ที่รับเข้า ({selectedReceipt.items?.length || 0} รายการ)
+              </div>
+              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100/70 text-slate-500 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="p-2.5">รหัส / ชื่ออะไหล่</th>
+                      <th className="p-2.5 text-right">จำนวนรับเข้า</th>
+                      <th className="p-2.5 text-right">ราคาทุน/หน่วย</th>
+                      <th className="p-2.5 text-right">รวมเป็นเงิน</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {selectedReceipt.items?.map((item: any, i: number) => {
+                      const totalItem = (item.quantity || 0) * (item.costPerUnit || 0)
+                      return (
+                        <tr key={item.id || i} className="hover:bg-slate-50/80">
+                          <td className="p-2.5">
+                            <div className="font-mono text-[11px] text-slate-400">{item.part?.code || '-'}</div>
+                            <div className="font-medium text-slate-800">{item.part?.name || 'อะไหล่'}</div>
+                          </td>
+                          <td className="p-2.5 text-right font-semibold text-slate-800">
+                            {item.quantity} {item.part?.unit || 'ชิ้น'}
+                          </td>
+                          <td className="p-2.5 text-right text-slate-600">
+                            {formatCurrency(item.costPerUnit)}
+                          </td>
+                          <td className="p-2.5 text-right font-bold text-emerald-700">
+                            {formatCurrency(totalItem)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {selectedReceipt.notes && (
+              <div className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                <span className="font-semibold text-slate-700">หมายเหตุ:</span> {selectedReceipt.notes}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

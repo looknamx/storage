@@ -24,11 +24,12 @@ interface IssueItem {
 }
 
 export default function StockOutPage() {
-  const [activeTab, setActiveTab] = useState<'issue' | 'return' | 'history'>('issue')
+  const [activeTab, setActiveTab] = useState<'issue' | 'issues_history' | 'returns_history'>('issue')
   const [parts, setParts] = useState<any[]>([])
   const [vehicles, setVehicles] = useState<any[]>([])
   const [repairOrders, setRepairOrders] = useState<any[]>([])
   const [issuesHistory, setIssuesHistory] = useState<any[]>([])
+  const [returnsHistory, setReturnsHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Feedback messages
@@ -87,21 +88,24 @@ export default function StockOutPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [partsRes, vehiclesRes, issuesRes, dashRes] = await Promise.all([
+      const [partsRes, vehiclesRes, issuesRes, dashRes, returnsRes] = await Promise.all([
         fetch('/api/parts'),
         fetch('/api/vehicles'),
         fetch('/api/stock/issue'),
         fetch('/api/dashboard'),
+        fetch('/api/stock/return'),
       ])
 
       const partsData = await partsRes.json()
       const vehiclesData = await vehiclesRes.json()
       const issuesData = await issuesRes.json()
       const dashData = await dashRes.json()
+      const returnsData = await returnsRes.json()
 
       setParts(partsData.parts || [])
       setVehicles(Array.isArray(vehiclesData) ? vehiclesData : [])
       setIssuesHistory(Array.isArray(issuesData) ? issuesData : [])
+      setReturnsHistory(Array.isArray(returnsData) ? returnsData : [])
       // Use recent/active repair orders from dash
       setRepairOrders(dashData.activeRepairList || [])
     } catch (err) {
@@ -257,14 +261,24 @@ export default function StockOutPage() {
           ฟอร์มเบิกอะไหล่ไปใช้งาน
         </button>
         <button
-          onClick={() => setActiveTab('history')}
+          onClick={() => setActiveTab('issues_history')}
           className={`pb-3 border-b-2 transition ${
-            activeTab === 'history'
+            activeTab === 'issues_history'
               ? 'border-indigo-600 text-indigo-600 font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          ประวัติใบเบิก & บันทึกคืน ({issuesHistory.length})
+          ประวัติการเบิกอะไหล่ ({issuesHistory.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('returns_history')}
+          className={`pb-3 border-b-2 transition ${
+            activeTab === 'returns_history'
+              ? 'border-indigo-600 text-indigo-600 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          ประวัติการคืนอะไหล่ ({returnsHistory.length})
         </button>
       </div>
 
@@ -479,8 +493,8 @@ export default function StockOutPage() {
         </div>
       )}
 
-      {/* TAB 2: History & Returns */}
-      {activeTab === 'history' && (
+      {/* TAB 2: ประวัติการเบิกอะไหล่ */}
+      {activeTab === 'issues_history' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="divide-y divide-slate-100">
             {issuesHistory.length > 0 ? (
@@ -532,7 +546,7 @@ export default function StockOutPage() {
                       return (
                         <div
                           key={it.id}
-                          className="flex items-center justify-between text-xs p-2 bg-slate-50 rounded-lg"
+                          className="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg"
                         >
                           <div>
                             <span className="font-medium text-slate-800">{it.part.name}</span>
@@ -542,8 +556,8 @@ export default function StockOutPage() {
                             <span className="text-slate-600">
                               เบิก {it.quantity} {it.part.unit}
                               {it.returnedQty > 0 && (
-                                <span className="text-amber-600 ml-1">
-                                  (คืนแล้ว {it.returnedQty})
+                                <span className="text-amber-600 font-medium ml-1">
+                                  (ส่งคืนแล้ว {it.returnedQty})
                                 </span>
                               )}
                             </span>
@@ -577,6 +591,74 @@ export default function StockOutPage() {
             ) : (
               <div className="p-8 text-center text-sm text-slate-400">
                 ยังไม่มีประวัติการเบิกจ่ายอะไหล่ในระบบ
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: ประวัติการคืนอะไหล่ (แยกรายการออกมาต่างหาก) */}
+      {activeTab === 'returns_history' && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">บันทึกรายการคืนอะไหล่เข้าคลัง</h3>
+              <p className="text-xs text-slate-500">แสดงรายการที่มีการส่งคืนอะไหล่จากการเบิกใช้งาน</p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full">
+              คืนทั้งหมด {returnsHistory.length} รายการ
+            </span>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {returnsHistory.length > 0 ? (
+              returnsHistory.map((ret: any) => (
+                <div key={ret.id} className="p-4 hover:bg-slate-50/80 transition text-xs space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-indigo-700 text-sm">
+                        {ret.returnNumber}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          ret.condition === 'damaged'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {ret.condition === 'damaged' ? 'ชำรุด (ไม่คืนสต็อกใช้งาน)' : 'สภาพสมบูรณ์ (คืนเข้าคลัง)'}
+                      </span>
+                    </div>
+                    <div className="text-slate-400 text-[11px]">
+                      วันที่คืน: {formatDate(ret.returnDate)} • ผู้ส่งคืน: <span className="text-slate-700 font-medium">{ret.returnedBy || '-'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                      <div className="font-semibold text-slate-800 text-sm">
+                        {ret.part?.name} <span className="font-mono text-slate-400 text-xs">({ret.part?.code})</span>
+                      </div>
+                      <div className="text-slate-500 mt-0.5">
+                        อ้างอิงใบเบิก: <span className="font-mono font-medium text-slate-700">{ret.issue?.issueNumber || '-'}</span> • ทะเบียนรถ: <span className="font-medium text-slate-700">{ret.issue?.vehicle?.licensePlate || '-'}</span>
+                      </div>
+                      {ret.reason && (
+                        <div className="text-slate-400 mt-1 italic">
+                          เหตุผล: {ret.reason}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-base font-bold text-amber-700">
+                        จำนวนที่คืน: {ret.quantity} {ret.part?.unit || 'ชิ้น'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-sm text-slate-400">
+                ยังไม่มีประวัติการคืนอะไหล่ในระบบ
               </div>
             )}
           </div>
