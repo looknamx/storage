@@ -353,3 +353,114 @@ model VehicleType {
   updatedAt   DateTime @updatedAt
 }
 
+// ==================== ระบบแผนงานการตลาด & ขนส่ง (Marketing & Transport Logistics) ====================
+
+model MarketingCustomer {
+  id          String   @id @default(cuid())
+  code        String?  @unique
+  name        String   @unique
+  contactInfo String?
+  address     String?
+  phone       String?
+  taxId       String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobs        TransportJob[]
+}
+
+model TransportJob {
+  id              String    @id @default(cuid())
+  itemNo          Int?      // ลำดับที่
+  jobDate         DateTime? // วดป.รับงาน
+  jobMonth        String?   // เดือนรับงาน เช่น ก.ค., ส.ค.
+  jobYear         Int?      // ปี เช่น 2569
+  loadingDate     DateTime? // วันที่รับสินค้า / วันขึ้นสินค้า
+  loadingTime     String?   // เวลาขึ้นสินค้า
+  deliveryDate    DateTime? // วันลงสินค้า
+  deliveryTime    String?   // เวลาลงของ
+  isApproved      Boolean   @default(false) // OK
+
+  // การวางบิลและการเงินรับ
+  billingDate     DateTime? // วันที่วางบิล
+  invoiceNo       String?   // เลขที่วางบิล เช่น IV.6907/019
+  jobOrderNo      String?   // Job Order
+  isPaid          Boolean   @default(false) // รับชำระแล้ว
+  paymentDate     DateTime? // วันที่รับชำระ
+
+  // รถและคนขับ
+  isSubcontractor Boolean   @default(false) // รถร่วม (true = รถร่วม, false = รถบริษัท)
+  vehicleType     String?   // ประเภทรถ
+  licensePlate    String    // ทะเบียน เช่น "นม.71-1726 , 71-1036"
+  driverName      String    // ชื่อ-สกุลคนขับ
+  vehicleId       String?   // เชื่อมโยงกับ Vehicle ถ้ามี
+
+  // ลูกค้าและเส้นทาง
+  customerId      String?
+  customerName    String    // ชื่อลูกค้า เช่น บริษัท น้ำตาลครบุรี จำกัด (มหาชน)
+  origin          String    // ต้นทาง เช่น บางปู, ครบุรี, เสิงสาง
+  weightTicketNo  String?   // เลขที่ใบชั่ง
+  destination     String    // ปลายทาง เช่น อ.คง, อ่าวไทย, ปลาวาฬ
+  details         String?   // รายละเอียด / ข้อมูลเพิ่มเติม เช่น อนุโลมจ่ายพิเศษ, มีของกลับ
+
+  // รายได้
+  weightKg        Float     @default(0) // น้ำหนัก (กก.)
+  rateType        String    @default("per_ton") // per_ton, lump_sum
+  ratePerTon      Float     @default(0) // ราคาต่อตัน หรือราคาต่อหน่วย
+  grossAmount     Float     @default(0) // จำนวนเงิน (น้ำหนัก/เหมา)
+  withholdingTax  Float     @default(0) // หัก ณ ที่จ่าย 1%
+  netRevenue      Float     @default(0) // จำนวนเงินสุทธิ (grossAmount - withholdingTax)
+
+  // กรณีรถร่วม (Subcontractor)
+  subcontractorRate     Float?  @default(0) // ราคาต่อตันให้รถร่วม
+  commission            Float?  @default(0) // จ่ายค่านายหน้า
+  subcontractorDiff     Float?  @default(0) // ส่วนต่างรถร่วมที่ต้องจ่าย
+  subcontractorFuelCost Float?  @default(0) // ค่าน้ำมันรถร่วม
+  subcontractorWht      Float?  @default(0) // หัก ณ ที่จ่ายรถร่วม
+  subcontractorNet      Float?  @default(0) // จำนวนเงินสุทธิรถร่วม
+  subcontractorFuelLiters Float? @default(0) // น้ำมัน (L) รถร่วม
+  subcontractorFuelPrice Float?  @default(0) // ราคาน้ำมันต่อลิตร (รถร่วม)
+  isSubcontractorPaid   Boolean @default(false) // จ่ายรถร่วมแล้ว
+  subcontractorPaidDate DateTime? // วันที่จ่ายรถร่วม
+
+  // เลขไมล์และน้ำมัน (บริษัท)
+  odometerStart   Float?    @default(0) // เลขไมล์ก่อนไป
+  odometerEnd     Float?    @default(0) // เลขไมล์กลับมา
+  distanceKm      Float?    @default(0) // กม. ที่ใช้ไป
+  fuelLiters      Float?    @default(0) // เติมน้ำมัน (ลิตร)
+  fuelEfficiency  Float?    @default(0) // กม./ลิตร
+  fuelPricePerLiter Float?  @default(0) // ราคาต่อลิตร
+  fuelCost        Float?    @default(0) // ค่าน้ำมันรถ
+
+  // ค่าใช้จ่ายประจำเที่ยว (Trip Expenses)
+  expenseLoadingUnloading Float @default(0) // ขึ้น ลง
+  expenseFuelSavingBonus  Float @default(0) // พิเศษ(เซฟน้ำมัน)
+  expenseExtraBonus       Float @default(0) // พิเศษ+เพิ่ม
+  expenseAllowance        Float @default(0) // เบี้ยเลี้ยง
+  expenseBackhaul         Float @default(0) // ของกลับ
+  expenseExpressway       Float @default(0) // ทางด่วน
+  expensePort             Float @default(0) // ค่าท่า
+  expenseDetention        Float @default(0) // ตกค้าง
+  expenseRepair           Float @default(0) // ค่าซ่อม
+  expenseOther            Float @default(0) // อื่นๆ
+  totalExpenses           Float @default(0) // รวม ค่าใช้จ่าย
+
+  // กำไรสุทธิต่องาน
+  netProfit               Float @default(0) // คงเหลือสุทธิต่องาน (netRevenue - totalExpenses)
+  notes                   String?           // หมายเหตุ
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  customer        MarketingCustomer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerName])
+  @@index([licensePlate])
+  @@index([driverName])
+  @@index([invoiceNo])
+  @@index([loadingDate])
+}
+
+

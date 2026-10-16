@@ -78,19 +78,18 @@ export default function PortalLandingPage() {
           </Link>
 
           {/* Program 2: ระบบแผนงานการตลาด */}
-          <button
-            type="button"
-            onClick={() => setShowMarketingModal(true)}
-            className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-2xl bg-slate-800/40 border-2 border-slate-700/60 hover:border-purple-500/60 hover:bg-slate-800/70 shadow-lg hover:shadow-xl hover:shadow-purple-500/10 backdrop-blur-xl transition-all duration-300 transform hover:-translate-y-1 text-left"
+          <Link
+            href="/marketing"
+            className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-2xl bg-slate-800/70 border-2 border-slate-700/80 hover:border-purple-500/80 hover:bg-slate-800/90 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 backdrop-blur-xl transition-all duration-300 transform hover:-translate-y-1 text-left"
           >
             {/* Top Badge */}
             <div className="flex items-center justify-between mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/30 group-hover:scale-105 transition-transform duration-300">
                 <TrendingUp className="w-7 h-7" />
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 border border-purple-500/30 text-purple-300">
-                <Clock className="w-3.5 h-3.5 text-purple-300" />
-                โครงการถัดไป
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                พร้อมใช้งาน
               </span>
             </div>
 
@@ -100,18 +99,18 @@ export default function PortalLandingPage() {
                 ระบบแผนงานการตลาด
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
-                ระบบวางแผนกลยุทธ์การตลาด วิเคราะห์กลุ่มเป้าหมาย แคมเปญโปรโมชัน และติดตามยอดขาย
+                บริหารจัดการเที่ยววิ่งขนส่ง วางบิลลูกค้า ตรวจสอบต้นทุนค่าน้ำมัน และคำนวณกำไรสุทธิต่องาน
               </p>
             </div>
 
             {/* Action Button */}
             <div className="pt-4 border-t border-slate-700/60 flex items-center justify-between text-purple-400 group-hover:text-purple-300 font-semibold text-sm">
-              <span>รอเปิดใช้งาน</span>
+              <span>เข้าสู่ระบบงาน</span>
               <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
-                <Sparkles className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
-          </button>
+          </Link>
         </div>
 
         {/* Footer info */}

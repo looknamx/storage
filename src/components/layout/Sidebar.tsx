@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   LayoutGrid,
+  TrendingUp,
   Car,
   Package,
   PackagePlus,
@@ -312,6 +313,25 @@ export default function Sidebar({
             isCollapsed ? 'px-2 flex flex-col items-center space-y-2' : 'px-3 space-y-2'
           }`}
         >
+          {/* Switch to Marketing System */}
+          <Link
+            href="/marketing"
+            title={isCollapsed ? 'ไป: ระบบแผนงานการตลาด' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-purple-300 hover:bg-purple-950/40 hover:text-purple-100 transition-colors ${
+              isCollapsed
+                ? 'h-10 w-10 justify-center group relative'
+                : 'w-full gap-3 px-3 py-2'
+            }`}
+          >
+            <TrendingUp className="h-5 w-5 shrink-0 text-purple-400" />
+            {!isCollapsed && <span>ไป: ระบบแผนงานการตลาด</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-purple-200 text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+                ไป: ระบบแผนงานการตลาด
+              </div>
+            )}
+          </Link>
+
           {/* Switch Module / Return to Portal */}
           <Link
             href="/"

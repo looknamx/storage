@@ -3,11 +3,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
+import MarketingSidebar from '@/components/layout/MarketingSidebar';
 import Topbar from '@/components/layout/Topbar';
 import AutoBackupRunner from '@/components/AutoBackupRunner';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isMarketing = pathname.startsWith('/marketing');
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer
   const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapsed state
 
@@ -56,13 +58,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-900">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={handleSidebarClose}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={handleToggleCollapse}
-      />
+    <div className={`flex h-screen overflow-hidden ${isMarketing ? 'bg-[#13111c]' : 'bg-slate-900'}`}>
+      {isMarketing ? (
+        <MarketingSidebar
+          isOpen={sidebarOpen}
+          onClose={handleSidebarClose}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
+      ) : (
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={handleSidebarClose}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
+      )}
       <div className="flex flex-1 flex-col overflow-hidden bg-white">
         <Topbar onMenuToggle={handleMenuToggle} isCollapsed={isCollapsed} />
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
