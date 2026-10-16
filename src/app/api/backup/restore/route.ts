@@ -8,6 +8,13 @@ const BACKUP_DIR = path.join(process.cwd(), 'backups')
 
 export async function POST(request: Request) {
   try {
+    const isPostgres = process.env.DATABASE_URL?.startsWith('postgres')
+    if (isPostgres) {
+      return NextResponse.json({
+        error: 'ระบบกำลังทำงานบน Neon Cloud Database ซึ่งได้รับการสำรองและดูแลบนคลาวด์อัตโนมัติ (Automated Cloud Recovery) หากต้องการย้อนข้อมูล สามารถเลือก Branch หรือ Point-in-time Restore ผ่านหน้าคอนโซลของ Neon ได้ทันทีครับ',
+      }, { status: 400 })
+    }
+
     const { filename, createSafetyBackupFirst = true } = await request.json()
 
     if (!filename) {
@@ -64,4 +71,3 @@ export async function POST(request: Request) {
     )
   }
 }
-
