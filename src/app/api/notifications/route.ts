@@ -19,6 +19,26 @@ async function syncSystemAlerts() {
       },
     })
 
+    // If there are no parts at all, wipe all part notifications immediately
+    if (parts.length === 0) {
+      await prisma.notification.deleteMany({
+        where: { referenceType: 'part' },
+      })
+    }
+
+    // 2. Fetch active maintenance plans
+    const maintenancePlans = await prisma.maintenancePlan.findMany({
+      where: { isActive: true },
+      include: { vehicle: true },
+    })
+
+    // If there are no maintenance plans at all, wipe all maintenance notifications immediately
+    if (maintenancePlans.length === 0) {
+      await prisma.notification.deleteMany({
+        where: { referenceType: 'maintenance_plan' },
+      })
+    }
+
     // Existing part notifications
     const existingPartNotifs = await prisma.notification.findMany({
       where: { referenceType: 'part' },
@@ -32,6 +52,14 @@ async function syncSystemAlerts() {
 
     const newNotifications: any[] = []
     const resolvedNotifIds: string[] = []
+
+    // Clean up any orphan notifications for parts that were deleted
+    const activePartIds = new Set(parts.map((p) => p.id))
+    for (const notif of existingPartNotifs) {
+      if (!notif.referenceId || !activePartIds.has(notif.referenceId)) {
+        resolvedNotifIds.push(notif.id)
+      }
+    }
 
     for (const part of parts) {
       const minStock = part.minimumStock > 0 ? part.minimumStock : 5
@@ -73,17 +101,20 @@ async function syncSystemAlerts() {
       }
     }
 
-    // 2. Fetch maintenance plans
-    const maintenancePlans = await prisma.maintenancePlan.findMany({
-      where: { isActive: true },
-      include: { vehicle: true },
-    })
-
+    // Existing maintenance notifications
     const existingMaintNotifs = await prisma.notification.findMany({
       where: { referenceType: 'maintenance_plan' },
       select: { id: true, referenceId: true },
     })
     const notifByPlanId = new Set(existingMaintNotifs.map((n) => n.referenceId))
+
+    // Clean up orphan notifications for maintenance plans that were deleted
+    const activePlanIds = new Set(maintenancePlans.map((p) => p.id))
+    for (const notif of existingMaintNotifs) {
+      if (!notif.referenceId || !activePlanIds.has(notif.referenceId)) {
+        resolvedNotifIds.push(notif.id)
+      }
+    }
 
     for (const plan of maintenancePlans) {
       const isDateOverdue = plan.nextDueDate && new Date(plan.nextDueDate) <= now
@@ -107,7 +138,7 @@ async function syncSystemAlerts() {
       }
     }
 
-    // Clean up resolved notifications
+    // Clean up resolved and orphaned notifications
     if (resolvedNotifIds.length > 0) {
       await prisma.notification.deleteMany({
         where: { id: { in: resolvedNotifIds } },

@@ -79,6 +79,16 @@ export default function NotificationsPage() {
     }
   }
 
+  const handleClearAll = async () => {
+    if (!confirm('คุณต้องการล้างรายการแจ้งเตือนทั้งหมดใช่หรือไม่?')) return
+    try {
+      await fetch('/api/notifications', { method: 'DELETE' })
+      fetchNotifications()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const filteredNotifications = notifications.filter((n) => {
     if (activeTab === 'unread') return !n.isRead
     if (activeTab === 'parts') return n.referenceType === 'part' || n.type === 'low_stock' || n.type === 'out_of_stock'
@@ -115,6 +125,15 @@ export default function NotificationsPage() {
             >
               <Trash2 className="h-3.5 w-3.5" />
               ล้างที่อ่านแล้ว
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-medium transition"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              ลบทั้งหมด ({notifications.length})
             </button>
           )}
         </div>

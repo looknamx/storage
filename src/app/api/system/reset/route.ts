@@ -162,6 +162,9 @@ export async function POST(req: Request) {
       prisma.auditLog.deleteMany(),
     ])
 
+    // Explicit second pass to guarantee 0 notifications
+    await prisma.notification.deleteMany({})
+
     // Step 3: Ensure standard categories are available for mechanics
     for (const catName of DEFAULT_CATEGORIES) {
       await prisma.partCategory.upsert({
