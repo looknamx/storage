@@ -3,45 +3,30 @@ title ระบบบริหารรถบริษัท คลังอะ�
 chcp 65001 > nul
 cd /d "%~dp0"
 
-echo =====================================================================
-echo    ระบบบริหารรถบริษัท คลังอะไหล่ และประวัติซ่อมบำรุง
-echo    Garage Storage & Fleet Vehicle Management System
-echo =====================================================================
+echo ===================================================
+echo   ระบบบริหารรถบริษัท คลังอะไหล่ และประวัติซ่อมบำรุง
+echo   Garage Storage & Fleet Vehicle Management System
+echo ===================================================
+echo.
+echo กำลังเริ่มต้นระบบ...
 echo.
 
-:: 1. ตรวจสอบโฟลเดอร์ node_modules
+:: 1. ตรวจสอบ dependencies เบื้องต้น
 if not exist "node_modules" (
-    echo [1/3] กำลังติดตั้ง Dependencies เริ่มต้น...
+    echo กำลังติดตั้งระบบครั้งแรก กรุณารอสักครู่...
     call npm install
 )
 
-:: 2. ตรวจสอบและสร้างฐานข้อมูลหากยังไม่มี
+:: 2. ตรวจสอบฐานข้อมูล
 if not exist "data\storage.db" (
-    echo [2/3] กำลังเตรียมฐานข้อมูลเริ่มต้น...
+    echo กำลังเตรียมฐานข้อมูล...
     call npx prisma db push
 )
 
-:: 3. ตรวจสอบไฟล์ Build
-if not exist ".next" (
-    echo [3/3] กำลังเตรียมระบบครั้งแรก (กำลัง Build)...
-    call npm run build
-)
+:: 3. เปิดหน้าต่างเบราว์เซอร์อัตโนมัติ
+start http://localhost:3000
 
-echo.
-echo [OK] กำลังเปิดหน้าต่างระบบ...
-echo กรุณาอย่าปิดหน้าต่างนี้ขณะใช้งาน
-echo.
-
-:: เปิดเบราว์เซอร์หลังจากเซิร์ฟเวอร์รัน
-start /b cmd /c "timeout /t 3 /nobreak >nul && start http://localhost:3000"
-
-:: รันเซิร์ฟเวอร์
-call npm run start
-
-if errorlevel 1 (
-    echo.
-    echo เกิดข้อผิดพลาดในการรัน Production กำลังสลับไปรัน Development แทน...
-    call npm run dev
-)
+:: 4. รันเซิร์ฟเวอร์แบบ dev (เหมือน start-system.bat ที่ทำงานได้ 100%)
+npm run dev
 
 pause
