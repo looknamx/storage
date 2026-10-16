@@ -19,6 +19,8 @@ import {
   Truck,
   X,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -45,9 +47,16 @@ const menuItems: MenuItem[] = [
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({
+  isOpen,
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
@@ -86,40 +95,118 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed top-0 left-0 z-50 flex h-full flex-col transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${isCollapsed ? 'w-64 lg:w-[72px]' : 'w-64 lg:w-64'}`}
         style={{ backgroundColor: '#1e293b' }}
       >
         {/* Logo / System Name */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
-              <Truck className="h-5 w-5 text-white" />
+        <div
+          className={`flex h-16 items-center border-b border-slate-700/80 px-3 transition-all ${
+            isCollapsed ? 'justify-center lg:px-2' : 'justify-between px-4'
+          }`}
+        >
+          {isCollapsed ? (
+            /* Collapsed view header: Centered blue truck icon with expand action */
+            <div className="flex items-center justify-center w-full">
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                title="คลิกเพื่อขยายเมนู (Expand Menu)"
+                className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-all active:scale-95"
+              >
+                <Truck className="h-5 w-5" />
+                <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+                  คลิกเพื่อขยายเมนูด้านซ้าย
+                </div>
+              </button>
             </div>
-            <div>
-              <h1 className="text-sm font-semibold text-white leading-tight">
-                ระบบบริหารรถบริษัท
-              </h1>
-              <p className="text-xs text-slate-400">Fleet Management</p>
-            </div>
-          </div>
-          {/* Close button - mobile only */}
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-700 hover:text-white lg:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          ) : (
+            /* Expanded view header */
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 shadow-sm">
+                  <Truck className="h-5 w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-sm font-semibold text-white leading-tight truncate">
+                    ระบบบริหารรถบริษัท
+                  </h1>
+                  <p className="text-xs text-slate-400 truncate">Fleet Management</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {/* Desktop Collapse Toggle */}
+                {onToggleCollapse && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    title="ย่อเมนู (แสดงเฉพาะไอคอน)"
+                    className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                )}
+
+                {/* Mobile Close Button */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-md p-1 text-slate-400 hover:bg-slate-700 hover:text-white lg:hidden"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="space-y-1">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 scrollbar-thin scrollbar-thumb-slate-700">
+          <ul className="space-y-1.5">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
 
+              if (isCollapsed) {
+                // Collapsed (Icon Only with Floating Tooltip)
+                return (
+                  <li key={item.path} className="relative group flex justify-center">
+                    <Link
+                      href={item.path}
+                      onClick={onClose}
+                      className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
+                        active
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+
+                      {/* Low-stock / Unread badge in collapsed mode */}
+                      {item.path === '/notifications' && unreadNotifications > 0 && (
+                        <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-slate-800"></span>
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* Floating Tooltip */}
+                    <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-2xl whitespace-nowrap z-50 pointer-events-none transition-opacity">
+                      <span>{item.label}</span>
+                      {item.path === '/notifications' && unreadNotifications > 0 && (
+                        <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              }
+
+              // Expanded Mode (Normal)
               return (
                 <li key={item.path}>
                   <Link
@@ -127,12 +214,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     onClick={onClose}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       active
-                        ? 'bg-blue-500 text-white'
-                        : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                        : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
                     }`}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1 truncate">{item.label}</span>
                     {item.path === '/notifications' && unreadNotifications > 0 && (
                       <div className="ml-auto flex items-center gap-1.5">
                         <span className="relative flex h-2 w-2">
@@ -157,14 +244,32 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </ul>
         </nav>
 
+        {/* Collapsed Toggle Button at bottom when collapsed */}
+        {isCollapsed && onToggleCollapse && (
+          <div className="hidden lg:flex justify-center py-2 border-t border-slate-700/60">
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="ขยายเมนู (Expand)"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
         {/* Exit Application & Version */}
-        <div className="border-t border-slate-700/80 px-3 py-3 space-y-2">
+        <div
+          className={`border-t border-slate-700/80 py-3 transition-all ${
+            isCollapsed ? 'px-2 flex flex-col items-center' : 'px-3 space-y-2'
+          }`}
+        >
           <button
             type="button"
             onClick={async () => {
               if (confirm('คุณต้องการปิดการทำงานของระบบและออกจากโปรแกรมใช่หรือไม่?')) {
                 try {
-                  await fetch('/api/system/shutdown', { method: 'POST' })
+                  await fetch('/api/system/shutdown', { method: 'POST' });
                 } catch (e) {
                   // ignore
                 }
@@ -173,18 +278,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <h2 style="font-size:24px;margin-bottom:8px;">ปิดระบบเรียบร้อยแล้ว</h2>
                     <p style="color:#94a3b8;font-size:14px;">คุณสามารถปิดหน้าต่างนี้ได้ทันที ขอบคุณครับ</p>
                   </div>
-                `
+                `;
                 setTimeout(() => {
-                  window.close()
-                }, 1000)
+                  window.close();
+                }, 1000);
               }
             }}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+            title={isCollapsed ? 'ออกจากโปรแกรม' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors ${
+              isCollapsed
+                ? 'h-10 w-10 justify-center group relative'
+                : 'w-full gap-3 px-3 py-2'
+            }`}
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            <span>ออกจากโปรแกรม</span>
+            {!isCollapsed && <span>ออกจากโปรแกรม</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-rose-200 text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+                ออกจากโปรแกรม
+              </div>
+            )}
           </button>
-          <p className="text-center text-[11px] text-slate-500">v1.0.0 (Fleet Storage)</p>
+          {!isCollapsed && (
+            <p className="text-center text-[11px] text-slate-500">v1.0.0 (Fleet Storage)</p>
+          )}
         </div>
       </aside>
     </>

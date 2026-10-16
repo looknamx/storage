@@ -22,6 +22,7 @@ import {
   ArrowUpCircle,
   Check,
   ExternalLink,
+  Download,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
@@ -56,6 +57,12 @@ export default function SettingsPage() {
   const [modalKind, setModalKind] = useState<'part' | 'vehicle'>('part')
   const [newCatName, setNewCatName] = useState('')
   const [newCatDesc, setNewCatDesc] = useState('')
+
+  // Reset System & Mandatory Backup State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  const [confirmResetText, setConfirmResetText] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [exportingSnapshot, setExportingSnapshot] = useState(false)
 
   const fetchAll = async () => {
     try {
@@ -223,6 +230,74 @@ export default function SettingsPage() {
       fetchAll()
     } catch (err: any) {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาด')
+    }
+  }
+
+  const handleExportSnapshot = async () => {
+    try {
+      setExportingSnapshot(true)
+      setErrorMessage('')
+      const res = await fetch('/api/system/export-snapshot')
+      if (!res.ok) throw new Error('ไม่สามารถดาวน์โหลดไฟล์สำรองข้อมูลได้')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `fleet_full_snapshot_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (Full Snapshot) สำเร็จเรียบร้อยแล้ว')
+    } catch (err: any) {
+      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการดาวน์โหลดสำรองข้อมูล')
+    } finally {
+      setExportingSnapshot(false)
+    }
+  }
+
+  const handleExecuteReset = async () => {
+    if (confirmResetText !== 'RESET') return
+    try {
+      setResetting(true)
+      setErrorMessage('')
+
+      const res = await fetch('/api/system/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmText: 'RESET' }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'การล้างข้อมูลระบบล้มเหลว')
+      }
+
+      // MANDATORY SAFETY BACKUP: Automatic forced browser download
+      if (data.snapshot) {
+        const blob = new Blob([JSON.stringify(data.snapshot, null, 2)], {
+          type: 'application/json',
+        })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = data.backupFilename || `fleet_backup_before_reset_${Date.now()}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      }
+
+      setIsResetModalOpen(false)
+      setConfirmResetText('')
+      setSuccessMessage(
+        `ล้างข้อมูลระบบสำเร็จเรียบร้อย! ระบบได้สำรองข้อมูลอัตโนมัติและดาวน์โหลดไฟล์ "${data.backupFilename}" ลงเครื่องคอมพิวเตอร์ของท่านแล้ว (ล้างข้อมูลอะไหล่ ${data.deletedSummary?.parts || 0} รายการ, รถ ${data.deletedSummary?.vehicles || 0} คัน) พร้อมสำหรับเริ่มบันทึกข้อมูลใหม่`
+      )
+      fetchAll()
+    } catch (err: any) {
+      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการล้างข้อมูล')
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -634,16 +709,81 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Danger Zone: Handover & Reset Database */}
+      <div className="bg-red-50/70 border-2 border-red-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-red-200 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-red-100 text-red-600 rounded-xl shrink-0">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-red-950 flex items-center gap-2">
+                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบทั้งหมด (Project Handover)
+              </h2>
+              <p className="text-xs text-red-700 mt-0.5">
+                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการส่งมอบโปรเจกต์ให้ช่างเริ่มบันทึกข้อมูลรถและสต็อกอะไหล่จริงใหม่ทั้งหมด
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportSnapshot}
+              disabled={exportingSnapshot}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 shadow-sm transition disabled:opacity-50"
+            >
+              <Download className="h-4 w-4 text-blue-600" />
+              {exportingSnapshot ? 'กำลังส่งออก...' : 'ดาวน์โหลด Snapshot สำรองข้อมูล'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmResetText('')
+                setIsResetModalOpen(true)
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
+            >
+              <Trash2 className="h-4 w-4" />
+              ลบข้อมูลทั้งหมดเพื่อเริ่มใช้งานใหม่
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="bg-white/80 p-3.5 rounded-xl border border-red-100 space-y-1.5">
+            <div className="font-bold text-red-800 flex items-center gap-1.5">
+              <Shield className="h-4 w-4 text-red-600" />
+              ระบบบังคับสำรองข้อมูลอัตโนมัติ (Forced Safety Backup)
+            </div>
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลทั้งหมดทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
+            </p>
+          </div>
+
+          <div className="bg-white/80 p-3.5 rounded-xl border border-red-100 space-y-1.5">
+            <div className="font-bold text-red-800 flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              พร้อมเริ่มใช้งานทันทีหลังล้างระบบ
+            </div>
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              ระบบจะรักษาโครงสร้างหมวดหมู่อะไหล่ (เช่น น้ำมันเครื่อง, ไส้กรอง, ระบบเบรก) และการตั้งค่าพื้นฐานไว้ เพื่อให้ช่างสามารถเปิดโปรแกรมและเริ่มกรอกข้อมูลใหม่ได้ทันที
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Architecture Info */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
           <Shield className="h-4 w-4 text-emerald-600" />
-          ข้อมูลสถาปัตยกรรมระบบเครื่องเดี่ยว (Standalone Architecture)
+          ข้อมูลสถาปัตยกรรมระบบ (Cloud & Standalone Architecture)
         </h2>
-        <div className="text-xs text-slate-600 space-y-1 leading-relaxed">
-          <div>• <strong>ระบบฐานข้อมูล:</strong> SQLite บนไฟล์ดิสก์จริง (./data/storage.db)</div>
-          <div>• <strong>ความปลอดภัยของข้อมูล:</strong> การอัปเดตโค้ดผ่าน GitHub จะอัปเดตเฉพาะ Source Code โดยไม่มีการแตะต้องหรือเขียนทับไฟล์ `storage.db` ฐานข้อมูลเด็ดขาด</div>
-          <div>• <strong>การขยายระบบในอนาคต:</strong> สามารถปรับเปลี่ยนเป็น PostgreSQL เพื่อรองรับ Multi-user และระบบคลาวด์ได้โดยไม่ต้องเขียนโค้ดใหม่ทั้งหมด</div>
+        <div className="text-xs text-slate-600 space-y-1.5 leading-relaxed">
+          <div>• <strong>ระบบฐานข้อมูลหลัก:</strong> เชื่อมต่อ Neon Cloud PostgreSQL (Serverless Cloud Database) พร้อมระบบสำรองอัตโนมัติ</div>
+          <div>• <strong>ความปลอดภัยของข้อมูล:</strong> การอัปเดตโค้ดผ่าน GitHub จะอัปเดตเฉพาะ Source Code โดยไม่มีผลกระทบต่อข้อมูลจริงใน Cloud Database</div>
+          <div>• <strong>การเข้าถึงหลายอุปกรณ์:</strong> ช่างสามารถเข้าถึงและบันทึกข้อมูลพร้อมกันได้จากทุกที่ทุกเวลาผ่านระบบคลาวด์</div>
         </div>
       </div>
 
@@ -702,6 +842,101 @@ export default function SettingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirm Reset & Forced Backup */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl relative space-y-4">
+            <div className="flex items-center gap-3 text-red-600 border-b pb-3">
+              <div className="p-2.5 bg-red-100 rounded-xl">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  ยืนยันการล้างข้อมูลระบบทั้งหมด (Factory Reset)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Project Handover - ส่งมอบระบบและเริ่มคีย์ข้อมูลใหม่
+                </p>
+              </div>
+              <button
+                onClick={() => !resetting && setIsResetModalOpen(false)}
+                disabled={resetting}
+                className="ml-auto text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-600">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 space-y-1.5">
+                <p className="font-bold text-red-800">
+                  ⚠️ การดำเนินการนี้จะลบข้อมูลต่อไปนี้ออกจากระบบทั้งหมด:
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-red-700">
+                  <li>ข้อมูลอะไหล่ทั้งหมด และประวัติการรับเข้า-เบิกจ่าย-คืนอะไหล่</li>
+                  <li>ข้อมูลรถบริษัททั้งหมด และประวัติการอ่านเลขไมล์</li>
+                  <li>ใบงานซ่อมทั้งหมด และประวัติการซ่อมบำรุง</li>
+                  <li>รายชื่อผู้จำหน่าย (Suppliers) และรายการแจ้งเตือนทั้งหมด</li>
+                </ul>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-blue-800">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  ระบบบังคับสำรองข้อมูลลงเครื่องทันที (Forced Backup)
+                </p>
+                <p className="text-[11px] text-blue-700 leading-relaxed">
+                  เมื่อกดยืนยัน ระบบจะรวบรวมข้อมูลทั้งหมดเป็นไฟล์ Snapshot และสั่งให้เว็บบราวเซอร์ดาวน์โหลดไฟล์ <code>fleet_backup_before_reset_*.json</code> ลงโฟลเดอร์ Downloads ในเครื่องของท่านทันทีโดยอัตโนมัติก่อนที่จะเริ่มทำการลบข้อมูล
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  เพื่อความปลอดภัยสูงสุด กรุณาพิมพ์คำว่า <span className="text-red-600 underline font-mono text-sm">RESET</span> เพื่อยืนยัน:
+                </label>
+                <input
+                  type="text"
+                  value={confirmResetText}
+                  onChange={(e) => setConfirmResetText(e.target.value)}
+                  placeholder="พิมพ์ RESET ตรงนี้..."
+                  disabled={resetting}
+                  className="w-full px-3.5 py-2.5 border-2 border-slate-300 focus:border-red-500 rounded-xl text-sm font-mono tracking-wider focus:outline-none uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t">
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(false)}
+                disabled={resetting}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteReset}
+                disabled={confirmResetText !== 'RESET' || resetting}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2"
+              >
+                {resetting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    กำลังสำรองข้อมูลและล้างระบบ...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    สำรองข้อมูลและล้างระบบทันที
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

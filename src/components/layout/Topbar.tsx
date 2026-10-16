@@ -28,9 +28,10 @@ function formatThaiDate(date: Date): string {
 
 interface TopbarProps {
   onMenuToggle: () => void;
+  isCollapsed?: boolean;
 }
 
-export default function Topbar({ onMenuToggle }: TopbarProps) {
+export default function Topbar({ onMenuToggle, isCollapsed }: TopbarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -59,12 +60,13 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-6">
-      {/* Left: Hamburger menu (mobile) */}
-      <div className="flex items-center gap-4">
+      {/* Left: Hamburger menu (mobile & desktop toggle) */}
+      <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
-          aria-label="เปิดเมนู"
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+          aria-label="เปิด/ปิดเมนู"
+          title={isCollapsed ? "ขยายแถบเมนูด้านซ้าย" : "ย่อแถบเมนูด้านซ้าย"}
         >
           <Menu className="h-5 w-5" />
         </button>
