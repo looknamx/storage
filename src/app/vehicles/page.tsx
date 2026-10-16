@@ -18,6 +18,9 @@ import {
   Building,
   User,
   Calendar,
+  FileSpreadsheet,
+  Upload,
+  Download,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getStatusLabel, getStatusColor, formatDate, formatNumber } from '@/lib/utils'
@@ -35,6 +38,14 @@ export default function VehiclesPage() {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  // Import Excel Modal
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [updateExistingOnImport, setUpdateExistingOnImport] = useState(true)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<any>(null)
+  const [importError, setImportError] = useState('')
 
   // Form states
   const [formData, setFormData] = useState({
@@ -189,6 +200,42 @@ export default function VehiclesPage() {
     }
   }
 
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!importFile) {
+      setImportError('กรุณาเลือกไฟล์ Excel (.xlsx หรือ .xls)')
+      return
+    }
+
+    setIsImporting(true)
+    setImportError('')
+    setImportResult(null)
+
+    try {
+      const data = new FormData()
+      data.append('file', importFile)
+      data.append('updateExisting', updateExistingOnImport ? 'true' : 'false')
+
+      const res = await fetch('/api/vehicles/import', {
+        method: 'POST',
+        body: data,
+      })
+      const result = await res.json()
+
+      if (!res.ok) {
+        setImportError(result.error || 'เกิดข้อผิดพลาดในการนำเข้าไฟล์')
+        return
+      }
+
+      setImportResult(result)
+      fetchVehicles()
+    } catch (err: any) {
+      setImportError(err.message || 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -199,13 +246,27 @@ export default function VehiclesPage() {
             จัดการข้อมูลรถประจำตำแหน่ง รถขนส่ง ประวัติเลขไมล์ และสถานะการใช้งาน
           </p>
         </div>
-        <button
-          onClick={handleOpenAddModal}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          เพิ่มรถใหม่
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIsImportModalOpen(true)
+              setImportFile(null)
+              setImportResult(null)
+              setImportError('')
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition shadow-sm"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+            นำเข้า Excel
+          </button>
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            เพิ่มรถใหม่
+          </button>
+        </div>
       </div>
 
       {/* Alerts */}
@@ -577,6 +638,145 @@ export default function VehiclesPage() {
                     : editingVehicleId
                     ? 'บันทึกการแก้ไข'
                     : 'บันทึกข้อมูลรถ'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Import Excel */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              onClick={() => setIsImportModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                <FileSpreadsheet className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg">นำเข้าข้อมูลรถบริษัทจาก Excel</h3>
+                <p className="text-xs text-slate-500">
+                  รองรับไฟล์ .xlsx หรือ .xls พร้อมนำเข้าทะเบียนรถ ข้อมูลคนขับ และเลขไมล์
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleImportSubmit} className="space-y-4">
+              {/* Template Download */}
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs">
+                <span className="text-slate-600">ต้องการดูรูปแบบตารางที่แนะนำ?</span>
+                <a
+                  href="/api/vehicles/template"
+                  download="fleet_vehicles_template.xlsx"
+                  className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  ดาวน์โหลดไฟล์ตัวอย่าง (.xlsx)
+                </a>
+              </div>
+
+              {/* File Drop Area */}
+              <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-emerald-500 transition bg-slate-50/50">
+                <input
+                  type="file"
+                  id="vehicleExcelFileInput"
+                  accept=".xlsx, .xls"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setImportFile(e.target.files[0])
+                      setImportError('')
+                      setImportResult(null)
+                    }
+                  }}
+                />
+                <label htmlFor="vehicleExcelFileInput" className="cursor-pointer flex flex-col items-center">
+                  <Upload className="h-8 w-8 text-slate-400 mb-2" />
+                  <span className="text-sm font-semibold text-slate-700">
+                    {importFile ? importFile.name : 'คลิกเพื่อเลือกไฟล์ Excel (.xlsx, .xls)'}
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    {importFile ? `ขนาด: ${(importFile.size / 1024).toFixed(1)} KB` : 'หรือลากไฟล์มาวางที่นี่'}
+                  </span>
+                </label>
+              </div>
+
+              {/* Options */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer text-xs text-slate-700 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={updateExistingOnImport}
+                    onChange={(e) => setUpdateExistingOnImport(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    <strong>อัปเดตข้อมูลเดิม:</strong> หากพบทะเบียนรถซ้ำ ให้ปรับปรุงข้อมูล ยี่ห้อ, รุ่น, แผนก, ผู้ดูแล, เลขไมล์ ตามไฟล์ Excel
+                  </span>
+                </label>
+              </div>
+
+              {/* Error Message */}
+              {importError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{importError}</span>
+                </div>
+              )}
+
+              {/* Result Summary */}
+              {importResult && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    นำเข้าไฟล์ Excel สำเร็จ!
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-center font-medium">
+                    <div className="p-2 bg-white rounded-lg border border-emerald-100">
+                      <div className="text-slate-500 text-[10px]">เพิ่มรถใหม่</div>
+                      <div className="text-emerald-600 font-bold text-sm">+{importResult.importedCount}</div>
+                    </div>
+                    <div className="p-2 bg-white rounded-lg border border-emerald-100">
+                      <div className="text-slate-500 text-[10px]">อัปเดตเดิม</div>
+                      <div className="text-blue-600 font-bold text-sm">{importResult.updatedCount}</div>
+                    </div>
+                    <div className="p-2 bg-white rounded-lg border border-emerald-100">
+                      <div className="text-slate-500 text-[10px]">ข้ามรายการ</div>
+                      <div className="text-slate-500 font-bold text-sm">{importResult.skippedCount}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs hover:bg-slate-50"
+                >
+                  {importResult ? 'เสร็จสิ้น' : 'ยกเลิก'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isImporting || !importFile}
+                  className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition shadow-sm flex items-center gap-1.5"
+                >
+                  {isImporting ? (
+                    <>กำลังนำเข้าข้อมูล...</>
+                  ) : (
+                    <>
+                      <Upload className="h-3.5 w-3.5" />
+                      เริ่มนำเข้าข้อมูล
+                    </>
+                  )}
                 </button>
               </div>
             </form>
