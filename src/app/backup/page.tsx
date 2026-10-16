@@ -19,7 +19,7 @@ import {
   FileUp,
   Check,
 } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateTime } from '@/lib/utils'
 
 export default function BackupPage() {
   const [backups, setBackups] = useState<any[]>([])
@@ -490,7 +490,7 @@ export default function BackupPage() {
                   {lastBackup.filename}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-0.5">
-                  {formatDate(lastBackup.createdAt)} ({lastBackup.sizeFormatted})
+                  {formatDateTime(lastBackup.createdAt)} ({lastBackup.sizeFormatted})
                 </div>
               </div>
             ) : (
@@ -582,7 +582,7 @@ export default function BackupPage() {
                       {bk.filename}
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-700">{bk.sizeFormatted}</td>
-                    <td className="px-6 py-4 text-slate-500">{formatDate(bk.createdAt)}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDateTime(bk.createdAt)}</td>
                     <td className="px-6 py-4 text-right space-x-2">
                       {/* Download to PC */}
                       <a

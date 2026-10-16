@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 interface IssueItem {
   partId: string
@@ -352,12 +353,10 @@ export default function StockOutPage() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   วันที่เบิกสินค้า <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <ThaiDatePicker
                   required
                   value={issueDate}
-                  onChange={(e) => setIssueDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
+                  onChange={setIssueDate}
                 />
               </div>
 

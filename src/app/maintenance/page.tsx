@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency, formatNumber } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 export default function MaintenancePage() {
   const [plans, setPlans] = useState<any[]>([])
@@ -650,13 +651,11 @@ export default function MaintenancePage() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">
                     วันที่ทำครั้งล่าสุด
                   </label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     value={formData.lastPerformedDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastPerformedDate: e.target.value })
+                    onChange={(val) =>
+                      setFormData({ ...formData, lastPerformedDate: val })
                     }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
                   />
                 </div>
 
@@ -768,14 +767,12 @@ export default function MaintenancePage() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   วันที่ดำเนินการ <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <ThaiDatePicker
                   required
                   value={completeData.performedDate}
-                  onChange={(e) =>
-                    setCompleteData({ ...completeData, performedDate: e.target.value })
+                  onChange={(val) =>
+                    setCompleteData({ ...completeData, performedDate: val })
                   }
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
                 />
               </div>
 
@@ -982,13 +979,11 @@ export default function MaintenancePage() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">
                     วันที่ทำครั้งล่าสุด
                   </label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     value={editFormData.lastPerformedDate}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, lastPerformedDate: e.target.value })
+                    onChange={(val) =>
+                      setEditFormData({ ...editFormData, lastPerformedDate: val })
                     }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
                   />
                 </div>
 

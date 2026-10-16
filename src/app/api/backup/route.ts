@@ -20,6 +20,28 @@ export async function GET() {
         .map((file) => {
           const filePath = path.join(BACKUP_DIR, file)
           const stats = fs.statSync(filePath)
+
+          let fileDate = stats.mtime
+          if (stats.birthtime && stats.birthtime.getTime() > 946684800000) {
+            fileDate = stats.birthtime
+          }
+
+          // If filename contains timestamp like 20261015_220227
+          const fnMatch = file.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/)
+          if (fnMatch) {
+            const parsed = new Date(
+              parseInt(fnMatch[1]),
+              parseInt(fnMatch[2]) - 1,
+              parseInt(fnMatch[3]),
+              parseInt(fnMatch[4]),
+              parseInt(fnMatch[5]),
+              parseInt(fnMatch[6])
+            )
+            if (!isNaN(parsed.getTime())) {
+              fileDate = parsed
+            }
+          }
+
           return {
             filename: file,
             isJson: file.endsWith('.json'),
@@ -28,7 +50,7 @@ export async function GET() {
               stats.size > 1024 * 1024
                 ? `${(stats.size / (1024 * 1024)).toFixed(2)} MB`
                 : `${(stats.size / 1024).toFixed(1)} KB`,
-            createdAt: stats.birthtime,
+            createdAt: fileDate,
             modifiedAt: stats.mtime,
           }
         })

@@ -15,6 +15,7 @@ import {
   Package,
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 interface ReceiveItem {
   partId: string
@@ -188,12 +189,10 @@ export default function StockInPage() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   วันที่รับเข้าสินค้า <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <ThaiDatePicker
                   required
                   value={receiptDate}
-                  onChange={(e) => setReceiptDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
+                  onChange={setReceiptDate}
                 />
               </div>
 

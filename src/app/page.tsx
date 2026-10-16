@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency, getStatusLabel, getStatusColor } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 export default function DashboardPage() {
   const [timeFilter, setTimeFilter] = useState<string>('1month')
@@ -107,20 +108,22 @@ export default function DashboardPage() {
       {timeFilter === 'custom' && (
         <div className="flex flex-wrap items-center gap-3 bg-blue-50 border border-blue-200 p-3 rounded-xl">
           <Calendar className="h-4 w-4 text-blue-600" />
-          <span className="text-xs font-medium text-blue-800">เลือกช่วงวันที่:</span>
-          <input
-            type="date"
-            value={customStart}
-            onChange={(e) => setCustomStart(e.target.value)}
-            className="px-2.5 py-1 text-xs border border-blue-300 rounded-lg bg-white focus:outline-blue-500"
-          />
-          <span className="text-xs text-blue-600">ถึง</span>
-          <input
-            type="date"
-            value={customEnd}
-            onChange={(e) => setCustomEnd(e.target.value)}
-            className="px-2.5 py-1 text-xs border border-blue-300 rounded-lg bg-white focus:outline-blue-500"
-          />
+          <span className="text-xs font-medium text-blue-800 shrink-0">เลือกช่วงวันที่:</span>
+          <div className="w-36">
+            <ThaiDatePicker
+              value={customStart}
+              onChange={setCustomStart}
+              placeholder="เริ่มต้น"
+            />
+          </div>
+          <span className="text-xs text-blue-600 shrink-0">ถึง</span>
+          <div className="w-36">
+            <ThaiDatePicker
+              value={customEnd}
+              onChange={setCustomEnd}
+              placeholder="สิ้นสุด"
+            />
+          </div>
           <button
             onClick={handleCustomApply}
             className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700"

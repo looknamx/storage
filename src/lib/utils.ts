@@ -89,9 +89,13 @@ const STATUS_COLORS: Record<string, string> = {
 
 /**
  * Convert a CE year to a Buddhist Era (พ.ศ.) year.
+ * Prevents double-conversion if the year is already > 2400.
  */
 export function toBuddhistYear(date: Date): number {
-  return date.getFullYear() + 543
+  const y = date.getFullYear()
+  if (isNaN(y)) return new Date().getFullYear() + 543
+  if (y > 2400) return y
+  return y + 543
 }
 
 /**
@@ -125,8 +129,26 @@ function ensureDate(date: Date | string): Date {
  * Format date to short Thai format with Buddhist Era.
  * Example: "15 ต.ค. 2569"
  */
-export function formatDate(date: Date | string): string {
+export function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return '-'
   const d = ensureDate(date)
+  if (isNaN(d.getTime())) return '-'
+
+  // Guard against epoch 0 / 1970 timestamp bug (which rendered as 2513)
+  if (d.getFullYear() <= 1980) {
+    if (typeof date === 'string') {
+      const match = date.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/)
+      if (match && parseInt(match[1]) > 2000) {
+        const y = parseInt(match[1])
+        const m = parseInt(match[2]) - 1
+        const day = parseInt(match[3])
+        const bYear = y > 2400 ? y : y + 543
+        return `${day} ${THAI_MONTHS_SHORT[m]} ${bYear}`
+      }
+    }
+    return '-'
+  }
+
   const day = d.getDate()
   const monthShort = THAI_MONTHS_SHORT[d.getMonth()]
   const buddhistYear = toBuddhistYear(d)
@@ -137,8 +159,13 @@ export function formatDate(date: Date | string): string {
  * Format date to full Thai format with Buddhist Era.
  * Example: "15 ตุลาคม 2569"
  */
-export function formatDateFull(date: Date | string): string {
+export function formatDateFull(date: Date | string | null | undefined): string {
+  if (!date) return '-'
   const d = ensureDate(date)
+  if (isNaN(d.getTime())) return '-'
+
+  if (d.getFullYear() <= 1980) return '-'
+
   const day = d.getDate()
   const monthFull = THAI_MONTHS_FULL[d.getMonth()]
   const buddhistYear = toBuddhistYear(d)
@@ -149,10 +176,29 @@ export function formatDateFull(date: Date | string): string {
  * Format date with time in Thai format.
  * Example: "15 ต.ค. 2569 14:30 น."
  */
-export function formatDateTime(date: Date | string): string {
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return '-'
   const d = ensureDate(date)
+  if (isNaN(d.getTime())) return '-'
+
+  if (d.getFullYear() <= 1980) return '-'
+
   const time = format(d, 'HH:mm', { locale: th })
   return `${formatDate(d)} ${time} น.`
+}
+
+/**
+ * Format date to numeric format in Buddhist Era (DD/MM/YYYY พ.ศ.)
+ * Example: "16/10/2569"
+ */
+export function formatDateNumeric(date: Date | string | null | undefined): string {
+  if (!date) return '-'
+  const d = ensureDate(date)
+  if (isNaN(d.getTime()) || d.getFullYear() <= 1980) return '-'
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const buddhistYear = toBuddhistYear(d)
+  return `${day}/${month}/${buddhistYear}`
 }
 
 /**

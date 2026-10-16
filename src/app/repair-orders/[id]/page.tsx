@@ -26,6 +26,7 @@ import {
   getStatusLabel,
   getStatusColor,
 } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 export default function RepairOrderDetailPage() {
   const params = useParams()
@@ -329,11 +330,9 @@ export default function RepairOrderDetailPage() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   วันที่ซ่อมเสร็จ
                 </label>
-                <input
-                  type="date"
+                <ThaiDatePicker
                   value={completedDate}
-                  onChange={(e) => setCompletedDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
+                  onChange={setCompletedDate}
                 />
               </div>
 
@@ -341,11 +340,9 @@ export default function RepairOrderDetailPage() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   วันที่ส่งมอบรถ
                 </label>
-                <input
-                  type="date"
+                <ThaiDatePicker
                   value={deliveredDate}
-                  onChange={(e) => setDeliveredDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
+                  onChange={setDeliveredDate}
                 />
               </div>
 

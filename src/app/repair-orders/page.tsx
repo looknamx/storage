@@ -25,6 +25,7 @@ import {
   getStatusLabel,
   getStatusColor,
 } from '@/lib/utils'
+import ThaiDatePicker from '@/components/ui/ThaiDatePicker'
 
 interface RepairItemInput {
   description: string
@@ -419,12 +420,10 @@ export default function RepairOrdersPage() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">
                     วันที่เข้าซ่อม <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     required
                     value={formData.orderDate}
-                    onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
+                    onChange={(val) => setFormData({ ...formData, orderDate: val })}
                   />
                 </div>
 
