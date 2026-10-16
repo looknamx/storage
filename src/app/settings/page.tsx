@@ -29,6 +29,8 @@ import { formatDate } from '@/lib/utils'
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({
     company_name: 'บริษัท ไทยฟลีท ทรานสปอร์ต จำกัด',
+    pincode_program_a: '1234',
+    pincode_program_b: '1234',
     default_advance_days: '30',
     default_advance_km: '1000',
     contact_phone: '02-123-4567',
@@ -552,6 +554,48 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, contact_phone: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-blue-500"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Section: PIN Security Settings */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b pb-3">
+            <Shield className="h-4 w-4 text-purple-600" />
+            รหัส PIN เข้าใช้งานระบบ (Security PIN Codes)
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                PIN โปรแกรม A (ระบบบริหารจัดการแผนซ่อมบำรุง)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={settings.pincode_program_a || '1234'}
+                onChange={(e) => setSettings({ ...settings, pincode_program_a: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold text-blue-600 focus:outline-blue-500"
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                รหัสผ่านเริ่มต้นคือ 1234
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                PIN โปรแกรม B (ระบบแผนงานการตลาด)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={settings.pincode_program_b || '1234'}
+                onChange={(e) => setSettings({ ...settings, pincode_program_b: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold text-purple-600 focus:outline-purple-500"
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                รหัสผ่านเริ่มต้นคือ 1234
+              </span>
             </div>
           </div>
         </div>

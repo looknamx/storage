@@ -13,12 +13,11 @@ import {
   Fuel,
   FileSpreadsheet,
   UploadCloud,
-  Wrench,
   LayoutGrid,
   ChevronLeft,
   ChevronRight,
   X,
-  Truck,
+  LogOut,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -29,14 +28,12 @@ interface MenuItem {
 
 interface MenuGroup {
   id: string;
-  title: string;
   items: MenuItem[];
 }
 
 const menuGroups: MenuGroup[] = [
   {
     id: 'overview',
-    title: 'ภาพรวม & เที่ยววิ่ง',
     items: [
       { label: 'แดชบอร์ดการตลาด', icon: LayoutDashboard, path: '/marketing' },
       { label: 'รายการเที่ยววิ่งทั้งหมด', icon: ClipboardList, path: '/marketing/jobs' },
@@ -44,7 +41,6 @@ const menuGroups: MenuGroup[] = [
   },
   {
     id: 'operations',
-    title: 'การจัดการงาน',
     items: [
       { label: 'บันทึกเที่ยววิ่งใหม่', icon: PlusCircle, path: '/marketing/jobs/new' },
       { label: 'ฐานข้อมูลลูกค้า', icon: Users, path: '/marketing/customers' },
@@ -52,7 +48,6 @@ const menuGroups: MenuGroup[] = [
   },
   {
     id: 'finance',
-    title: 'การเงิน & วางบิล',
     items: [
       { label: 'การวางบิลและรับชำระ', icon: Receipt, path: '/marketing/billing' },
       { label: 'รายงานกำไร-ขาดทุน', icon: FileSpreadsheet, path: '/marketing/reports' },
@@ -60,7 +55,6 @@ const menuGroups: MenuGroup[] = [
   },
   {
     id: 'analytics',
-    title: 'วิเคราะห์ & นำเข้า',
     items: [
       { label: 'วิเคราะห์น้ำมัน & เลขไมล์', icon: Fuel, path: '/marketing/fuel-report' },
       { label: 'นำเข้าข้อมูล CSV/Excel', icon: UploadCloud, path: '/marketing/import' },
@@ -93,21 +87,21 @@ export default function MarketingSidebar({
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Same slate background #1e293b and dimensions as Program A */}
       <aside
         className={`fixed top-0 left-0 z-50 flex h-full flex-col transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isCollapsed ? 'w-64 lg:w-[72px]' : 'w-64 lg:w-64'}`}
-        style={{ backgroundColor: '#13111c' }}
+        style={{ backgroundColor: '#1e293b' }}
       >
-        {/* Header */}
+        {/* Header - Identical to Program A */}
         <div
-          className={`flex h-16 items-center border-b border-purple-900/40 px-3 transition-all ${
+          className={`flex h-16 items-center border-b border-slate-700/80 px-3 transition-all ${
             isCollapsed ? 'justify-center lg:px-2' : 'justify-between px-4'
           }`}
         >
@@ -116,8 +110,8 @@ export default function MarketingSidebar({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                title="คลิกเพื่อขยายเมนู (Expand)"
-                className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-md shadow-purple-600/30 transition-all active:scale-95"
+                title="คลิกเพื่อขยายเมนู (Expand Menu)"
+                className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 hover:bg-purple-500 text-white shadow-md transition-all active:scale-95"
               >
                 <TrendingUp className="h-5 w-5" />
                 <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
@@ -128,14 +122,14 @@ export default function MarketingSidebar({
           ) : (
             <>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-sm shadow-purple-600/30 text-white">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-600 shadow-sm text-white">
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-sm font-semibold text-white leading-tight truncate">
                     ระบบแผนงานการตลาด
                   </h1>
-                  <p className="text-xs text-purple-300/70 truncate">Marketing & Transport</p>
+                  <p className="text-xs text-slate-400 truncate">Marketing & Transport</p>
                 </div>
               </div>
 
@@ -145,7 +139,7 @@ export default function MarketingSidebar({
                     type="button"
                     onClick={onToggleCollapse}
                     title="ย่อเมนู (แสดงเฉพาะไอคอน)"
-                    className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-purple-300/70 hover:bg-purple-950/60 hover:text-white transition-colors"
+                    className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -153,7 +147,7 @@ export default function MarketingSidebar({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md p-1 text-purple-300/70 hover:bg-purple-950/60 hover:text-white lg:hidden"
+                  className="rounded-md p-1 text-slate-400 hover:bg-slate-700 hover:text-white lg:hidden"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -163,53 +157,68 @@ export default function MarketingSidebar({
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin scrollbar-thumb-purple-900">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin scrollbar-thumb-slate-700">
           <div className="space-y-1">
             {menuGroups.map((group, groupIdx) => (
               <div key={group.id} className="space-y-1">
+                {/* Thin subtle category divider line - Identical to Program A */}
                 {groupIdx > 0 && (
                   <div
                     className={
                       isCollapsed
-                        ? 'w-8 h-[1px] bg-purple-900/40 my-2 mx-auto'
-                        : 'border-t border-purple-900/40 my-2 mx-1.5'
+                        ? 'w-8 h-[1px] bg-slate-700/80 my-2 mx-auto'
+                        : 'border-t border-slate-700/80 my-2 mx-1.5'
                     }
                   />
                 )}
 
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.path);
+                <ul className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
 
-                  return (
-                    <div key={item.path} className="relative group">
-                      <Link
-                        href={item.path}
-                        onClick={onClose}
-                        title={isCollapsed ? item.label : undefined}
-                        className={`flex items-center rounded-lg text-sm font-medium transition-all ${
-                          isCollapsed
-                            ? 'h-10 w-10 justify-center mx-auto'
-                            : 'w-full gap-3 px-3 py-2'
-                        } ${
-                          active
-                            ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                            : 'text-purple-200/80 hover:bg-purple-950/50 hover:text-white'
-                        }`}
-                      >
-                        <Icon className="h-5 w-5 shrink-0" />
-                        {!isCollapsed && <span className="truncate">{item.label}</span>}
-                      </Link>
+                    if (isCollapsed) {
+                      return (
+                        <li key={item.path} className="relative group flex justify-center">
+                          <Link
+                            href={item.path}
+                            onClick={onClose}
+                            className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
+                              active
+                                ? 'bg-purple-600 text-white shadow-md'
+                                : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
+                            }`}
+                          >
+                            <Icon className="h-5 w-5 shrink-0" />
+                          </Link>
 
-                      {/* Tooltip on collapsed desktop view */}
-                      {isCollapsed && (
-                        <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
-                          {item.label}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                          {/* Floating Tooltip */}
+                          <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-2xl whitespace-nowrap z-50 pointer-events-none transition-opacity">
+                            <span>{item.label}</span>
+                          </div>
+                        </li>
+                      );
+                    }
+
+                    // Expanded Mode (Normal) - Identical font, padding and height
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          href={item.path}
+                          onClick={onClose}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                            active
+                              ? 'bg-purple-600 text-white font-semibold shadow-sm'
+                              : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
+                          }`}
+                        >
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="flex-1 truncate">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             ))}
           </div>
@@ -217,64 +226,78 @@ export default function MarketingSidebar({
 
         {/* Bottom Expand Toggle Button if collapsed */}
         {isCollapsed && onToggleCollapse && (
-          <div className="hidden lg:flex justify-center border-t border-purple-900/40 py-2">
+          <div className="hidden lg:flex justify-center border-t border-slate-700/80 py-2">
             <button
               type="button"
               onClick={onToggleCollapse}
               title="ขยายเมนู (Expand)"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-purple-300/70 hover:bg-purple-950/60 hover:text-white transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         )}
 
-        {/* System Switchers & Portal */}
+        {/* Portal Switcher & Logout & Version */}
         <div
-          className={`border-t border-purple-900/40 py-3 transition-all ${
+          className={`border-t border-slate-700/80 py-3 transition-all ${
             isCollapsed ? 'px-2 flex flex-col items-center space-y-2' : 'px-3 space-y-2'
           }`}
         >
-          {/* Switch to Maintenance System */}
-          <Link
-            href="/dashboard"
-            title={isCollapsed ? 'สลับไป: ระบบซ่อมบำรุงรถ' : undefined}
-            className={`flex items-center rounded-lg text-xs font-medium text-blue-300 hover:bg-blue-950/40 hover:text-blue-100 transition-colors ${
-              isCollapsed ? 'h-10 w-10 justify-center group relative' : 'w-full gap-3 px-3 py-2'
-            }`}
-          >
-            <Truck className="h-4 w-4 shrink-0 text-blue-400" />
-            {!isCollapsed && <span>ไป: ระบบซ่อมบำรุง</span>}
-            {isCollapsed && (
-              <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-blue-200 text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
-                ไป: ระบบแผนซ่อมบำรุงรถ
-              </div>
-            )}
-          </Link>
-
-          {/* Switch to Portal */}
+          {/* Switch Module / Return to Portal */}
           <Link
             href="/"
-            title={isCollapsed ? 'กลับหน้าแรก Portal' : undefined}
-            className={`flex items-center rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors ${
-              isCollapsed ? 'h-10 w-10 justify-center group relative' : 'w-full gap-3 px-3 py-2'
+            title={isCollapsed ? 'สลับระบบงาน (Portal)' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700/80 hover:text-white transition-colors ${
+              isCollapsed
+                ? 'h-10 w-10 justify-center group relative'
+                : 'w-full gap-3 px-3 py-2'
             }`}
           >
-            <LayoutGrid className="h-4 w-4 shrink-0 text-slate-400" />
-            {!isCollapsed && <span>หน้าแรก (Portal)</span>}
+            <LayoutGrid className="h-5 w-5 shrink-0 text-purple-400" />
+            {!isCollapsed && <span>สลับระบบงาน (Portal)</span>}
             {isCollapsed && (
               <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
-                หน้าแรก (Portal)
+                สลับระบบงาน (Portal)
               </div>
             )}
           </Link>
 
+          {/* Logout Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('คุณต้องการออกจากระบบแผนงานการตลาด ใช่หรือไม่?')) {
+                try {
+                  localStorage.removeItem('auth_program_b');
+                  sessionStorage.removeItem('auth_program_b');
+                } catch (e) {
+                  // ignore
+                }
+                window.location.href = '/';
+              }
+            }}
+            title={isCollapsed ? 'ออกจากระบบ' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors ${
+              isCollapsed
+                ? 'h-10 w-10 justify-center group relative'
+                : 'w-full gap-3 px-3 py-2'
+            }`}
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            {!isCollapsed && <span>ออกจากระบบ</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-rose-200 text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+                ออกจากระบบ
+              </div>
+            )}
+          </button>
+
           {!isCollapsed && (
-            <p className="text-center text-[10px] text-purple-300/40 pt-1">v1.0.0 (Marketing & Ops)</p>
+            <p className="text-center text-[11px] text-slate-500">v1.0.0 (โปรแกรม B)</p>
           )}
         </div>
       </aside>
     </>
   );
 }
-

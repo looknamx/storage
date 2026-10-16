@@ -48,6 +48,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarOpen(false);
   }, []);
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Authentication check for Program A vs Program B
+  useEffect(() => {
+    if (pathname === '/') {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    try {
+      if (isMarketing) {
+        const authedB =
+          localStorage.getItem('auth_program_b') === 'true' ||
+          sessionStorage.getItem('auth_program_b') === 'true';
+        if (!authedB) {
+          window.location.href = '/?login=b';
+          return;
+        }
+      } else {
+        const authedA =
+          localStorage.getItem('auth_program_a') === 'true' ||
+          sessionStorage.getItem('auth_program_a') === 'true';
+        if (!authedA) {
+          window.location.href = '/?login=a';
+          return;
+        }
+      }
+      setIsAuthenticated(true);
+    } catch (e) {
+      setIsAuthenticated(true);
+    }
+  }, [pathname, isMarketing]);
+
   // When visiting portal landing page (root path), render clean standalone window without sidebar/topbar
   if (pathname === '/') {
     return (
@@ -57,8 +90,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Prevent unauthorized view flash while checking auth
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-slate-400 font-medium">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex h-screen overflow-hidden ${isMarketing ? 'bg-[#13111c]' : 'bg-slate-900'}`}>
+    <div className="flex h-screen overflow-hidden bg-slate-900">
       {isMarketing ? (
         <MarketingSidebar
           isOpen={sidebarOpen}
