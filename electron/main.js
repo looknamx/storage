@@ -1,17 +1,22 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron')
 const path = require('path')
 const { fork } = require('child_process')
-const { autoUpdater } = require('electron-updater')
+
+let autoUpdater = null
+try {
+  autoUpdater = require('electron-updater').autoUpdater
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+} catch (e) {
+  console.warn('[AutoUpdater] electron-updater module not found or failed to load:', e.message)
+}
 
 let mainWindow = null
 let serverProcess = null
 const PORT = 3000
 
-// Setup Auto Updater configuration
-autoUpdater.autoDownload = true
-autoUpdater.autoInstallOnAppQuit = true
-
 function setupAutoUpdater() {
+  if (!autoUpdater) return
   autoUpdater.on('checking-for-update', () => {
     console.log('[AutoUpdater] Checking for updates...')
     if (mainWindow) {
@@ -161,9 +166,15 @@ function createMainWindow() {
         {
           label: 'ตรวจหาอัปเดต (Check for Updates)',
           click: () => {
-            if (app.isPackaged) {
+            if (app.isPackaged && autoUpdater) {
               autoUpdater.checkForUpdates().catch((err) => {
                 dialog.showErrorBox('อัปเดตล้มเหลว', err.message)
+              })
+            } else if (!autoUpdater) {
+              dialog.showMessageBox(mainWindow, {
+                type: 'warning',
+                title: 'ไม่พบโมดูล Updater',
+                message: 'โมดูล Auto-Updater ไม่พร้อมใช้งานในเวอร์ชันนี้',
               })
             } else {
               dialog.showMessageBox(mainWindow, {
@@ -222,6 +233,9 @@ ipcMain.handle('get-app-version', () => {
 ipcMain.handle('check-app-update', async () => {
   if (!app.isPackaged) {
     return { status: 'dev_mode', message: 'Development Mode' }
+  }
+  if (!autoUpdater) {
+    return { status: 'error', message: 'Auto-Updater module is not loaded' }
   }
   try {
     const res = await autoUpdater.checkForUpdates()
