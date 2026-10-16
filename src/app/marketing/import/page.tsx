@@ -14,6 +14,7 @@ import {
   Database,
   Calendar,
   Check,
+  Download,
 } from 'lucide-react';
 
 const THAI_MONTHS = [
@@ -97,33 +98,6 @@ export default function MarketingImportPage() {
       }
     } catch (err: any) {
       setErrorMessage(`เกิดข้อผิดพลาดในการเชื่อมต่อ: ${err.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleReseedJulyData = async () => {
-    if (!confirm('คุณต้องการนำเข้าชุดข้อมูลตัวอย่างเดือนกรกฎาคม 2569 อีกครั้งใช่หรือไม่?')) return;
-
-    try {
-      setUploading(true);
-      setErrorMessage('');
-      setResult(null);
-
-      const res = await fetch('/api/marketing/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month: 'ก.ค.', year: 2569, mode: 'replace_month' }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setResult(data);
-      } else {
-        setErrorMessage(data.error || 'เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
-      }
-    } catch (err: any) {
-      setErrorMessage(`เกิดข้อผิดพลาด: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -326,29 +300,27 @@ export default function MarketingImportPage() {
         </form>
       </div>
 
-      {/* 1-Click Seed July Template */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Template Download Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-purple-50 rounded-2xl border border-purple-200/80 text-xs gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
-            <Database className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-purple-600/10 flex items-center justify-center text-purple-600 shrink-0">
+            <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold">ชุดข้อมูลตัวอย่าง: เดือนกรกฎาคม 2569 (539 รายการ)</h3>
-            <p className="text-xs text-purple-200/70">
-              หากต้องการรีเซ็ตหรือทดสอบโหลดข้อมูลเดือน ก.ค. 2569 จากไฟล์ระบบ สามารถกดซิงค์ได้ทันที
-            </p>
+            <div className="font-bold text-gray-800 text-sm">ต้องการดูรูปแบบตารางหรือดาวน์โหลดไฟล์ตัวอย่าง?</div>
+            <div className="text-[11px] text-gray-500 mt-0.5">
+              ดาวน์โหลดเทมเพลต Excel (.xlsx) ที่มีโครงสร้างหัวคอลัมน์มาตรฐานครบถ้วน พร้อมข้อมูลตัวอย่างเพื่อนำไปกรอกข้อมูล
+            </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          disabled={uploading}
-          onClick={handleReseedJulyData}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-50 shrink-0"
+        <a
+          href="/api/marketing/template"
+          download="transport_jobs_template.xlsx"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-xs shadow-sm transition active:scale-95 shrink-0"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${uploading ? 'animate-spin' : ''}`} />
-          <span>ซิงค์ข้อมูลตัวอย่าง ก.ค. 2569</span>
-        </button>
+          <Download className="w-4 h-4" />
+          <span>ดาวน์โหลดไฟล์ตัวอย่าง (.xlsx)</span>
+        </a>
       </div>
 
       {/* Column Structure Information */}

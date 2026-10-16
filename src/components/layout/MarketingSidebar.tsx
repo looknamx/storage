@@ -18,6 +18,7 @@ import {
   ChevronRight,
   X,
   LogOut,
+  Settings,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -58,6 +59,12 @@ const menuGroups: MenuGroup[] = [
     items: [
       { label: 'วิเคราะห์น้ำมัน & เลขไมล์', icon: Fuel, path: '/marketing/fuel-report' },
       { label: 'นำเข้าข้อมูล CSV/Excel', icon: UploadCloud, path: '/marketing/import' },
+    ],
+  },
+  {
+    id: 'system',
+    items: [
+      { label: 'ตั้งค่าระบบ', icon: Settings, path: '/marketing/settings' },
     ],
   },
 ];

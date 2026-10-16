@@ -16,12 +16,9 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
-  GitBranch,
   RefreshCw,
   Clock,
-  ArrowUpCircle,
   Check,
-  ExternalLink,
   Download,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
@@ -47,12 +44,6 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-
-  // System Update state
-  const [versionInfo, setVersionInfo] = useState<any>(null)
-  const [checkingUpdate, setCheckingUpdate] = useState(false)
-  const [updatingSystem, setUpdatingSystem] = useState(false)
-  const [updateLog, setUpdateLog] = useState<string[]>([])
 
   // Modal Add Category
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -94,22 +85,8 @@ export default function SettingsPage() {
     }
   }
 
-  const checkVersion = async () => {
-    try {
-      setCheckingUpdate(true)
-      const res = await fetch('/api/system/update')
-      const data = await res.json()
-      setVersionInfo(data)
-    } catch (err) {
-      console.error('Failed to check version:', err)
-    } finally {
-      setCheckingUpdate(false)
-    }
-  }
-
   useEffect(() => {
     fetchAll()
-    checkVersion()
   }, [])
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -147,38 +124,6 @@ export default function SettingsPage() {
       setErrorMessage(err.message || 'ไม่สามารถบันทึกได้')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleExecuteUpdate = async () => {
-    if (!confirm('ยืนยันการอัปเดตระบบตาม GitHub? ระบบจะดึงโค้ดล่าสุดลงมาโดยที่ข้อมูลในเครื่องไม่สูญหาย')) {
-      return
-    }
-
-    try {
-      setUpdatingSystem(true)
-      setErrorMessage('')
-      setSuccessMessage('')
-      setUpdateLog([])
-
-      const res = await fetch('/api/system/update', {
-        method: 'POST',
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        setErrorMessage(data.error || 'การอัปเดตระบบล้มเหลว')
-        if (data.logs) setUpdateLog(data.logs)
-        return
-      }
-
-      setSuccessMessage(data.message || 'อัปเดตระบบสำเร็จ กรุณารีเฟรชหน้าเว็บ')
-      if (data.logs) setUpdateLog(data.logs)
-      checkVersion()
-    } catch (err: any) {
-      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่ออัปเดต')
-    } finally {
-      setUpdatingSystem(false)
     }
   }
 
@@ -338,123 +283,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* ================= SECTION: System Version & GitHub Update ================= */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-md space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
-              <GitBranch className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                การตรวจสอบเวอร์ชัน & อัปเดตจาก GitHub
-              </h2>
-              <p className="text-xs text-slate-400">
-                ตรวจหาโค้ดเวอร์ชันล่าสุดบน GitHub และดึงมาอัปเดตระบบในเครื่อง Local อัตโนมัติ
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={checkVersion}
-              disabled={checkingUpdate || updatingSystem}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-medium transition disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${checkingUpdate ? 'animate-spin' : ''}`} />
-              {checkingUpdate ? 'กำลังตรวจหา...' : 'ตรวจหาเวอร์ชันใหม่'}
-            </button>
-          </div>
-        </div>
-
-        {/* Version Status Box */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60">
-            <div className="text-[11px] text-slate-400 font-medium">เวอร์ชันปัจจุบันบนเครื่องนี้ (Local)</div>
-            <div className="text-sm font-semibold text-white mt-1 flex items-center gap-2">
-              <span className="font-mono bg-slate-700 px-2 py-0.5 rounded text-blue-300">
-                {versionInfo?.current?.short || 'กำลังโหลด...'}
-              </span>
-              <span className="text-xs text-slate-400">({versionInfo?.branch || 'master'})</span>
-            </div>
-            {versionInfo?.current?.message && (
-              <p className="text-xs text-slate-300 mt-2 truncate" title={versionInfo.current.message}>
-                {versionInfo.current.message}
-              </p>
-            )}
-          </div>
-
-          <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60">
-            <div className="text-[11px] text-slate-400 font-medium">เวอร์ชันล่าสุดบน GitHub Remote</div>
-            <div className="text-sm font-semibold text-white mt-1 flex items-center gap-2">
-              <span className="font-mono bg-slate-700 px-2 py-0.5 rounded text-emerald-300">
-                {versionInfo?.latest?.short || 'กำลังตรวจสอบ...'}
-              </span>
-              <a
-                href={`https://github.com/${versionInfo?.repo || 'looknamx/storage'}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 inline-flex items-center gap-0.5"
-              >
-                ดูบน GitHub <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            {versionInfo?.latest?.message && (
-              <p className="text-xs text-slate-300 mt-2 truncate" title={versionInfo.latest.message}>
-                {versionInfo.latest.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Update Notification Banner */}
-        {versionInfo?.hasUpdate ? (
-          <div className="bg-blue-600/30 border border-blue-500/50 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 text-white rounded-lg">
-                <ArrowUpCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-blue-200">
-                  มีโค้ดอัปเดตเวอร์ชันใหม่พร้อมใช้งาน! ({versionInfo.latest.short})
-                </div>
-                <div className="text-xs text-blue-300/90 mt-0.5">
-                  เมื่อกดอัปเดต ระบบจะดึงโค้ดล่าสุดลงมาโดยที่ฐานข้อมูลในเครื่องของคุณจะไม่สูญหาย
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleExecuteUpdate}
-              disabled={updatingSystem}
-              className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${updatingSystem ? 'animate-spin' : ''}`} />
-              {updatingSystem ? 'กำลังดาวน์โหลดและอัปเดต...' : 'อัปเดตระบบทันที'}
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/30 border border-emerald-800/40 px-3 py-2 rounded-xl">
-            <Check className="h-4 w-4" />
-            <span>
-              {versionInfo?.checkError
-                ? `หมายเหตุ: ${versionInfo.checkError}`
-                : 'ระบบของคุณเป็นเวอร์ชันล่าสุดแล้ว ซิงค์ตรงกับ GitHub เรียบร้อย'}
-            </span>
-          </div>
-        )}
-
-        {/* Logs if available */}
-        {updateLog.length > 0 && (
-          <div className="bg-black/50 p-3 rounded-xl border border-slate-700 font-mono text-[11px] text-slate-300 space-y-1">
-            <div className="font-bold text-slate-400 mb-1">ผลการทำงาน (Update Logs):</div>
-            {updateLog.map((log, idx) => (
-              <div key={idx}>{log}</div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
         {/* Section: Auto Backup Settings */}
@@ -558,47 +386,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Section: PIN Security Settings */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b pb-3">
-            <Shield className="h-4 w-4 text-purple-600" />
-            รหัส PIN เข้าใช้งานระบบ (Security PIN Codes)
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                PIN โปรแกรม A (ระบบบริหารจัดการแผนซ่อมบำรุง)
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={settings.pincode_program_a || '1234'}
-                onChange={(e) => setSettings({ ...settings, pincode_program_a: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold text-blue-600 focus:outline-blue-500"
-              />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                รหัสผ่านเริ่มต้นคือ 1234
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                PIN โปรแกรม B (ระบบแผนงานการตลาด)
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={settings.pincode_program_b || '1234'}
-                onChange={(e) => setSettings({ ...settings, pincode_program_b: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-bold text-purple-600 focus:outline-purple-500"
-              />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                รหัสผ่านเริ่มต้นคือ 1234
-              </span>
-            </div>
-          </div>
-        </div>
 
         {/* Section: Maintenance Alerts */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">

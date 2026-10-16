@@ -55,6 +55,8 @@ export async function POST(req: Request) {
       notifications,
       auditLogs,
       appSettings,
+      transportJobs,
+      marketingCustomers,
     ] = await Promise.all([
       prisma.part.findMany(),
       prisma.partCategory.findMany(),
@@ -75,6 +77,8 @@ export async function POST(req: Request) {
       prisma.notification.findMany(),
       prisma.auditLog.findMany(),
       prisma.appSetting.findMany(),
+      prisma.transportJob.findMany(),
+      prisma.marketingCustomer.findMany(),
     ])
 
     const snapshot = {
@@ -100,6 +104,8 @@ export async function POST(req: Request) {
         maintenanceRecords: maintenanceRecords.length,
         notifications: notifications.length,
         auditLogs: auditLogs.length,
+        transportJobs: transportJobs.length,
+        marketingCustomers: marketingCustomers.length,
       },
       data: {
         parts,
@@ -121,6 +127,8 @@ export async function POST(req: Request) {
         notifications,
         auditLogs,
         appSettings,
+        transportJobs,
+        marketingCustomers,
       },
     }
 
@@ -141,6 +149,9 @@ export async function POST(req: Request) {
     // Step 2: PURGE TRANSACTIONAL & MASTER DATA
     // Delete in strict relational dependency order
     await prisma.$transaction([
+      prisma.transportJob.deleteMany(),
+      prisma.marketingCustomer.deleteMany(),
+
       prisma.partReturn.deleteMany(),
       prisma.partIssueItem.deleteMany(),
       prisma.stockReceiptItem.deleteMany(),
