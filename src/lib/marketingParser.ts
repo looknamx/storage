@@ -120,7 +120,11 @@ export function parseThaiOrIsoDate(val: string | null | undefined): Date | null 
 export function parseNumber(val: any, defaultVal = 0): number {
   if (val === null || val === undefined || val === '') return defaultVal;
   if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
-  const cleaned = String(val).replace(/,/g, '').trim();
+  let cleaned = String(val).replace(/[,฿\s]/g, '').trim();
+  if (cleaned === '-' || cleaned === '') return defaultVal;
+  if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+    cleaned = '-' + cleaned.slice(1, -1).trim();
+  }
   const num = parseFloat(cleaned);
   return isNaN(num) ? defaultVal : num;
 }

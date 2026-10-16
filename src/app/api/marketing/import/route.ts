@@ -194,8 +194,15 @@ export async function POST(req: NextRequest) {
     };
 
     const parseN = (val: any) => {
-      if (!val) return 0;
-      const n = parseFloat(String(val).replace(/,/g, '').trim());
+      if (val === undefined || val === null || val === '') return 0;
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      let s = String(val).replace(/[,฿\s]/g, '').trim();
+      if (s === '-' || s === '') return 0;
+      // Handle Accounting format parentheses: "(10,451.32)" -> "-10451.32"
+      if (s.startsWith('(') && s.endsWith(')')) {
+        s = '-' + s.slice(1, -1).trim();
+      }
+      const n = parseFloat(s);
       return isNaN(n) ? 0 : n;
     };
 
@@ -248,7 +255,18 @@ export async function POST(req: NextRequest) {
       const customerId = customerDbMap.get(customerName) || null;
 
       const grossAmount = parseN(r[cGrossAmount]);
-      const netProfit = parseN(r[cNetProfit]);
+      const withholdingTax = parseN(r[cWithholdingTax]);
+      const netRevenue = parseN(r[cNetRevenue]) || (grossAmount - withholdingTax);
+      const totalExpenses = parseN(r[cTotalExpenses]);
+
+      let netProfit = parseN(r[cNetProfit]);
+      const rawProfitStr = r[cNetProfit] !== undefined && r[cNetProfit] !== null ? String(r[cNetProfit]).trim() : '';
+      if (netProfit === 0 && (!rawProfitStr || rawProfitStr === '-' || rawProfitStr === '0')) {
+        if (totalExpenses > 0 || netRevenue > 0) {
+          netProfit = Number((netRevenue - totalExpenses).toFixed(2));
+        }
+      }
+
       totalGross += grossAmount;
       totalProfit += netProfit;
 
@@ -283,8 +301,8 @@ export async function POST(req: NextRequest) {
         rateType: (r[cRatePerTon] || '').toString().trim() === 'เหมา' ? 'lump_sum' : 'per_ton',
         ratePerTon: parseN(r[cRatePerTon]),
         grossAmount,
-        withholdingTax: parseN(r[cWithholdingTax]),
-        netRevenue: parseN(r[cNetRevenue]) || grossAmount,
+        withholdingTax,
+        netRevenue,
         odometerStart: parseN(r[cOdometerStart]),
         odometerEnd: parseN(r[cOdometerEnd]),
         distanceKm: parseN(r[cDistanceKm]),
@@ -302,7 +320,7 @@ export async function POST(req: NextRequest) {
         expenseDetention: parseN(r[cExpenseDetention]),
         expenseRepair: parseN(r[cExpenseRepair]),
         expenseOther: parseN(r[cExpenseOther]),
-        totalExpenses: parseN(r[cTotalExpenses]),
+        totalExpenses,
         netProfit,
         notes: (r[cNotes] || '').toString().trim() || null,
       });

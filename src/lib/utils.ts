@@ -214,10 +214,17 @@ export function formatNumber(num: number): string {
  * Example: 1234.5 → "฿1,234.50"
  */
 export function formatCurrency(num: number): string {
-  return `฿${num.toLocaleString('th-TH', {
+  const n = Number(num) || 0;
+  if (n < 0) {
+    return `-฿${Math.abs(n).toLocaleString('th-TH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  return `฿${n.toLocaleString('th-TH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`
+  })}`;
 }
 
 /**

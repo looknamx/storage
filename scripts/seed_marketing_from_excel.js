@@ -45,8 +45,11 @@ function parseThaiOrIsoDate(val) {
 
 function parseNum(val, def = 0) {
   if (val === null || val === undefined) return def;
-  const s = String(val).replace(/,/g, '').trim();
+  let s = String(val).replace(/[,฿\s]/g, '').trim();
   if (!s || s === '-') return def;
+  if (s.startsWith('(') && s.endsWith(')')) {
+    s = '-' + s.slice(1, -1).trim();
+  }
   const n = parseFloat(s);
   return isNaN(n) ? def : n;
 }

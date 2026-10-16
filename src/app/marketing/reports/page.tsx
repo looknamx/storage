@@ -287,13 +287,25 @@ export default function MarketingMonthlyReportPage() {
         </div>
 
         {/* 3. สรุปกำไรสุทธิคงเหลือ (Net Profit Final) */}
-        <div className="p-6 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-600/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div
+          className={`p-6 rounded-2xl ${
+            netProfit >= 0
+              ? 'bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-600/20'
+              : 'bg-gradient-to-tr from-rose-600 to-red-600 shadow-rose-600/20'
+          } text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4`}
+        >
           <div className="space-y-1 text-center sm:text-left">
-            <span className="text-xs uppercase font-semibold text-emerald-100 tracking-wider">
-              คงเหลือสุทธิประจำงวด (Net Profit)
+            <span
+              className={`text-xs uppercase font-semibold ${
+                netProfit >= 0 ? 'text-emerald-100' : 'text-rose-100'
+              } tracking-wider`}
+            >
+              คงเหลือสุทธิประจำงวด {netProfit >= 0 ? '(Net Profit)' : '(Net Loss)'}
             </span>
             <div className="text-3xl sm:text-4xl font-black tracking-tight">
-              ฿{formatCurrency(netProfit)}
+              {netProfit < 0
+                ? `-฿${formatCurrency(Math.abs(netProfit))}`
+                : `฿${formatCurrency(netProfit)}`}
             </div>
           </div>
 

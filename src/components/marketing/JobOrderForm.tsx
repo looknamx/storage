@@ -337,7 +337,9 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
               สรุปผลคำนวณกำไรสุทธิคงเหลือ (Net Profit Live)
             </span>
             <div className="text-2xl font-black tracking-tight">
-              ฿{new Intl.NumberFormat('th-TH').format(netProfit)}
+              {netProfit < 0
+                ? `-฿${new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(netProfit))}`
+                : `฿${new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(netProfit)}`}
             </div>
           </div>
         </div>

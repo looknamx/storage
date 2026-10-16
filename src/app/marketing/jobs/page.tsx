@@ -269,10 +269,28 @@ export default function MarketingJobsPage() {
               ฿{formatCurrency(aggregations.totalExpenses)}
             </span>
           </div>
-          <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
-            <span className="text-gray-500 block">คงเหลือสุทธิ (กำไร)</span>
-            <span className="text-sm font-bold text-emerald-700">
-              ฿{formatCurrency(aggregations.totalNetProfit)}
+          <div
+            className={`p-2.5 rounded-xl border ${
+              aggregations.totalNetProfit >= 0
+                ? 'bg-emerald-50/60 border-emerald-100'
+                : 'bg-rose-50/60 border-rose-100'
+            }`}
+          >
+            <span className="text-gray-500 block">
+              คงเหลือสุทธิ {aggregations.totalNetProfit >= 0 ? '(กำไร)' : '(ขาดทุน)'}
+            </span>
+            <span
+              className={`text-sm font-bold ${
+                aggregations.totalNetProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
+              }`}
+            >
+              {aggregations.totalNetProfit < 0
+                ? `-฿${Math.abs(aggregations.totalNetProfit).toLocaleString('th-TH', {
+                    maximumFractionDigits: 0,
+                  })}`
+                : `฿${Number(aggregations.totalNetProfit || 0).toLocaleString('th-TH', {
+                    maximumFractionDigits: 0,
+                  })}`}
             </span>
           </div>
         </div>
@@ -347,7 +365,15 @@ export default function MarketingJobsPage() {
                           ) : (
                             <TrendingDown className="w-3 h-3 text-rose-500" />
                           )}
-                          ฿{formatCurrency(job.netProfit)}
+                          {job.netProfit < 0
+                            ? `-฿${Math.abs(job.netProfit).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : `฿${Number(job.netProfit || 0).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`}
                         </span>
                       </td>
                       <td className="py-3 px-3">
