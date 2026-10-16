@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -49,6 +49,25 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('/api/notifications?countOnly=true');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadNotifications(data.unreadCount || 0);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000);
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   const isActive = (path: string): boolean => {
     if (path === '/') return pathname === '/';
@@ -113,7 +132,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     }`}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
-                    <span>{item.label}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {item.path === '/notifications' && unreadNotifications > 0 && (
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                        </span>
+                        <span
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full min-w-5 text-center leading-none ${
+                            active
+                              ? 'bg-white text-rose-600'
+                              : 'bg-rose-500 text-white'
+                          }`}
+                        >
+                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        </span>
+                      </div>
+                    )}
                   </Link>
                 </li>
               );
