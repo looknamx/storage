@@ -29,19 +29,49 @@ interface MenuItem {
   path: string;
 }
 
-const menuItems: MenuItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'ข้อมูลรถบริษัท', icon: Car, path: '/vehicles' },
-  { label: 'คลังอะไหล่', icon: Package, path: '/parts' },
-  { label: 'รับอะไหล่เข้า', icon: PackagePlus, path: '/stock-in' },
-  { label: 'เบิกจ่ายและคืนอะไหล่', icon: PackageMinus, path: '/stock-out' },
-  { label: 'ใบงานซ่อม', icon: Wrench, path: '/repair-orders' },
-  { label: 'ประวัติการซ่อม', icon: History, path: '/repair-history' },
-  { label: 'แผนซ่อมบำรุง', icon: CalendarCheck, path: '/maintenance' },
-  { label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
-  { label: 'รายงาน', icon: BarChart3, path: '/reports' },
-  { label: 'สำรองและกู้คืนข้อมูล', icon: Database, path: '/backup' },
-  { label: 'ตั้งค่าระบบ', icon: Settings, path: '/settings' },
+interface MenuGroup {
+  id: string;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    id: 'overview',
+    items: [
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { label: 'ข้อมูลรถบริษัท', icon: Car, path: '/vehicles' },
+    ],
+  },
+  {
+    id: 'inventory',
+    items: [
+      { label: 'คลังอะไหล่', icon: Package, path: '/parts' },
+      { label: 'รับอะไหล่เข้า', icon: PackagePlus, path: '/stock-in' },
+      { label: 'เบิกจ่ายและคืนอะไหล่', icon: PackageMinus, path: '/stock-out' },
+    ],
+  },
+  {
+    id: 'maintenance',
+    items: [
+      { label: 'ใบงานซ่อม', icon: Wrench, path: '/repair-orders' },
+      { label: 'ประวัติการซ่อม', icon: History, path: '/repair-history' },
+      { label: 'แผนซ่อมบำรุง', icon: CalendarCheck, path: '/maintenance' },
+    ],
+  },
+  {
+    id: 'monitoring',
+    items: [
+      { label: 'แจ้งเตือน', icon: Bell, path: '/notifications' },
+      { label: 'รายงาน', icon: BarChart3, path: '/reports' },
+    ],
+  },
+  {
+    id: 'system',
+    items: [
+      { label: 'สำรองและกู้คืนข้อมูล', icon: Database, path: '/backup' },
+      { label: 'ตั้งค่าระบบ', icon: Settings, path: '/settings' },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -163,85 +193,102 @@ export default function Sidebar({
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 scrollbar-thin scrollbar-thumb-slate-700">
-          <ul className="space-y-1.5">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin scrollbar-thumb-slate-700">
+          <div className="space-y-1">
+            {menuGroups.map((group, groupIdx) => (
+              <div key={group.id} className="space-y-1">
+                {/* Thin subtle category divider line */}
+                {groupIdx > 0 && (
+                  <div
+                    className={
+                      isCollapsed
+                        ? 'w-8 h-[1px] bg-slate-700/80 my-2 mx-auto'
+                        : 'border-t border-slate-700/80 my-2 mx-1.5'
+                    }
+                  />
+                )}
 
-              if (isCollapsed) {
-                // Collapsed (Icon Only with Floating Tooltip)
-                return (
-                  <li key={item.path} className="relative group flex justify-center">
-                    <Link
-                      href={item.path}
-                      onClick={onClose}
-                      className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
-                        active
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
-                      }`}
-                    >
-                      <Icon className="h-5 w-5 shrink-0" />
+                <ul className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
 
-                      {/* Low-stock / Unread badge in collapsed mode */}
-                      {item.path === '/notifications' && unreadNotifications > 0 && (
-                        <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-slate-800"></span>
-                        </span>
-                      )}
-                    </Link>
+                    if (isCollapsed) {
+                      // Collapsed (Icon Only with Floating Tooltip)
+                      return (
+                        <li key={item.path} className="relative group flex justify-center">
+                          <Link
+                            href={item.path}
+                            onClick={onClose}
+                            className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
+                              active
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
+                            }`}
+                          >
+                            <Icon className="h-5 w-5 shrink-0" />
 
-                    {/* Floating Tooltip */}
-                    <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-2xl whitespace-nowrap z-50 pointer-events-none transition-opacity">
-                      <span>{item.label}</span>
-                      {item.path === '/notifications' && unreadNotifications > 0 && (
-                        <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              }
+                            {/* Low-stock / Unread badge in collapsed mode */}
+                            {item.path === '/notifications' && unreadNotifications > 0 && (
+                              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-slate-800"></span>
+                              </span>
+                            )}
+                          </Link>
 
-              // Expanded Mode (Normal)
-              return (
-                <li key={item.path}>
-                  <Link
-                    href={item.path}
-                    onClick={onClose}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                        : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.path === '/notifications' && unreadNotifications > 0 && (
-                      <div className="ml-auto flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                        </span>
-                        <span
-                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full min-w-5 text-center leading-none ${
+                          {/* Floating Tooltip */}
+                          <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-2xl whitespace-nowrap z-50 pointer-events-none transition-opacity">
+                            <span>{item.label}</span>
+                            {item.path === '/notifications' && unreadNotifications > 0 && (
+                              <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    }
+
+                    // Expanded Mode (Normal)
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          href={item.path}
+                          onClick={onClose}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                             active
-                              ? 'bg-white text-rose-600'
-                              : 'bg-rose-500 text-white'
+                              ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                              : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
                           }`}
                         >
-                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                        </span>
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {item.path === '/notifications' && unreadNotifications > 0 && (
+                            <div className="ml-auto flex items-center gap-1.5">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full min-w-5 text-center leading-none ${
+                                  active
+                                    ? 'bg-white text-rose-600'
+                                    : 'bg-rose-500 text-white'
+                                }`}
+                              >
+                                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                              </span>
+                            </div>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </nav>
 
         {/* Collapsed Toggle Button at bottom when collapsed */}
