@@ -31,8 +31,25 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+const THAI_MONTH_NAMES: Record<string, string> = {
+  'ม.ค.': 'มกราคม',
+  'ก.พ.': 'กุมภาพันธ์',
+  'มี.ค.': 'มีนาคม',
+  'เม.ย.': 'เมษายน',
+  'พ.ค.': 'พฤษภาคม',
+  'มิ.ย.': 'มิถุนายน',
+  'ก.ค.': 'กรกฎาคม',
+  'ส.ค.': 'สิงหาคม',
+  'ก.ย.': 'กันยายน',
+  'ต.ค.': 'ตุลาคม',
+  'พ.ย.': 'พฤศจิกายน',
+  'ธ.ค.': 'ธันวาคม',
+};
+
 export default function MarketingDashboardPage() {
-  const [range, setRange] = useState<string>('all');
+  const [range, setRange] = useState<string>('month');
+  const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
+  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,6 +59,15 @@ export default function MarketingDashboardPage() {
     try {
       setLoading(true);
       let url = `/api/marketing/dashboard?range=${range}`;
+
+      if (range === 'month' && selectedMonthYear && selectedMonthYear !== 'all') {
+        const [m, y] = selectedMonthYear.split('|');
+        if (m) url += `&month=${encodeURIComponent(m)}`;
+        if (y) url += `&year=${encodeURIComponent(y)}`;
+      } else if (range === 'month' && selectedMonthYear === 'all') {
+        url += '&month=all&year=all';
+      }
+
       if (range === 'custom' && customStart && customEnd) {
         url += `&start=${customStart}&end=${customEnd}`;
       }
@@ -49,6 +75,13 @@ export default function MarketingDashboardPage() {
       if (res.ok) {
         const json = await res.json();
         setData(json);
+
+        if (json.availableMonths && json.availableMonths.length > 0) {
+          setAvailableMonths(json.availableMonths);
+          if (!selectedMonthYear) {
+            setSelectedMonthYear(`${json.availableMonths[0].month}|${json.availableMonths[0].year}`);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to load marketing dashboard:', err);
@@ -59,7 +92,7 @@ export default function MarketingDashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [range]);
+  }, [range, selectedMonthYear]);
 
   const handleCustomApply = () => {
     if (customStart && customEnd) {
@@ -136,24 +169,38 @@ export default function MarketingDashboardPage() {
 
       {/* Date Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {[
-            { id: 'all', label: 'ทั้งหมด' },
-            { id: '1month', label: '1 เดือนล่าสุด' },
-            { id: 'custom', label: 'กำหนดช่วงเวลา' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setRange(item.id)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                range === item.id
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Month Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500">เลือกเดือน:</span>
+            <select
+              value={range === 'month' ? selectedMonthYear : range}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'custom') {
+                  setRange('custom');
+                } else if (val === 'all') {
+                  setRange('all');
+                } else {
+                  setRange('month');
+                  setSelectedMonthYear(val);
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/70 text-xs font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
             >
-              {item.label}
-            </button>
-          ))}
+              {availableMonths.length > 0 ? (
+                availableMonths.map((item) => (
+                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
+                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} งาน)
+                  </option>
+                ))
+              ) : (
+                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
+              )}
+              <option value="all">ดูข้อมูลทุกเดือน (ยอดรวมทั้งหมด)</option>
+              <option value="custom">กำหนดช่วงวันที่เอง (Custom Range)</option>
+            </select>
+          </div>
         </div>
 
         {range === 'custom' && (

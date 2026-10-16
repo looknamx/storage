@@ -28,13 +28,20 @@ export default function RepairHistoryPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [monthFilter, setMonthFilter] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
   const fetchHistory = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/repair-orders?search=${encodeURIComponent(search)}`)
+      let url = `/api/repair-orders?search=${encodeURIComponent(search)}`
+      if (monthFilter) {
+        const [m, y] = monthFilter.split('|')
+        if (m) url += `&month=${m}`
+        if (y) url += `&year=${y}`
+      }
+      const res = await fetch(url)
       const data = await res.json()
       setOrders(Array.isArray(data) ? data : [])
     } catch (err) {
@@ -46,7 +53,7 @@ export default function RepairHistoryPage() {
 
   useEffect(() => {
     fetchHistory()
-  }, [])
+  }, [monthFilter])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,9 +148,9 @@ export default function RepairHistoryPage() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <form onSubmit={handleSearchSubmit} className="relative w-full">
+      {/* Search & Month Filter Bar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative w-full sm:flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -153,6 +160,33 @@ export default function RepairHistoryPage() {
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-blue-500"
           />
         </form>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-xs text-slate-500 font-medium shrink-0">เลือกเดือน:</span>
+          <select
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full sm:w-auto"
+          >
+            <option value="">ทุกเดือน (ทั้งหมด)</option>
+            {(() => {
+              const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+              const list = []
+              const now = new Date()
+              for (let i = 0; i < 12; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+                const m = d.getMonth() + 1
+                const yBE = d.getFullYear() + 543
+                list.push({ val: `${m}|${yBE}`, label: `${thaiMonths[m - 1]} ${yBE}` })
+              }
+              return list.map((item) => (
+                <option key={item.val} value={item.val}>
+                  เดือน {item.label}
+                </option>
+              ))
+            })()}
+          </select>
+        </div>
       </div>
 
       {/* History Table */}

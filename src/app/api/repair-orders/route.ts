@@ -8,8 +8,29 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
     const vehicleId = searchParams.get('vehicleId') || ''
+    const month = searchParams.get('month') || ''
+    const year = searchParams.get('year') || ''
+    const startDate = searchParams.get('startDate') || ''
+    const endDate = searchParams.get('endDate') || ''
 
     const where: any = {}
+
+    if (startDate && endDate) {
+      where.orderDate = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      }
+    } else if (month && year && month !== 'all') {
+      const y = parseInt(year, 10)
+      const ceYear = y > 2400 ? y - 543 : y
+      const m = parseInt(month, 10) // 1-12
+      const startOfMonth = new Date(ceYear, m - 1, 1, 0, 0, 0)
+      const endOfMonth = new Date(ceYear, m, 0, 23, 59, 59)
+      where.orderDate = {
+        gte: startOfMonth,
+        lte: endOfMonth,
+      }
+    }
 
     if (status) {
       where.status = status

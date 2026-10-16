@@ -5,26 +5,51 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const range = searchParams.get('range') || 'all';
+    const month = searchParams.get('month')?.trim() || '';
+    const year = searchParams.get('year')?.trim() || '';
     const startStr = searchParams.get('start');
     const endStr = searchParams.get('end');
 
     let whereClause: any = {};
+
+    if (month && month !== 'all') {
+      whereClause.jobMonth = month;
+    }
+    if (year && year !== 'all') {
+      whereClause.jobYear = parseInt(year, 10);
+    }
 
     if (range === 'custom' && startStr && endStr) {
       whereClause.loadingDate = {
         gte: new Date(startStr),
         lte: new Date(endStr),
       };
-    } else if (range === '1month') {
+    } else if (range === '1month' && !month) {
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
       whereClause.loadingDate = { gte: oneMonthAgo };
     }
 
-    const jobs = await prisma.transportJob.findMany({
-      where: whereClause,
-      orderBy: { itemNo: 'asc' },
-    });
+    const [jobs, monthsGroup] = await Promise.all([
+      prisma.transportJob.findMany({
+        where: whereClause,
+        orderBy: { itemNo: 'asc' },
+      }),
+      prisma.transportJob.groupBy({
+        by: ['jobYear', 'jobMonth'],
+        _count: { id: true },
+        orderBy: [
+          { jobYear: 'desc' },
+          { jobMonth: 'desc' },
+        ],
+      }),
+    ]);
+
+    const availableMonths = monthsGroup.map((g) => ({
+      year: g.jobYear || 2569,
+      month: g.jobMonth || '',
+      count: g._count.id,
+    }));
 
     // Calculate aggregated metrics
     let totalGrossRevenue = 0;
@@ -35,6 +60,17 @@ export async function GET(req: NextRequest) {
     let totalFuelCost = 0;
     let totalTripExpenses = 0;
     let totalNetProfit = 0;
+
+    let totalExpenseLoading = 0;
+    let totalExpenseFuelSaving = 0;
+    let totalExpenseExtraBonus = 0;
+    let totalExpenseAllowance = 0;
+    let totalExpenseBackhaul = 0;
+    let totalExpenseExpressway = 0;
+    let totalExpensePort = 0;
+    let totalExpenseDetention = 0;
+    let totalExpenseRepair = 0;
+    let totalExpenseOther = 0;
 
     const customerStats: Record<string, { count: number; revenue: number; profit: number }> = {};
     const routeStats: Record<string, { count: number; revenue: number }> = {};
@@ -50,6 +86,17 @@ export async function GET(req: NextRequest) {
       totalFuelCost += job.fuelCost || 0;
       totalTripExpenses += job.totalExpenses || 0;
       totalNetProfit += job.netProfit || 0;
+
+      totalExpenseLoading += job.expenseLoadingUnloading || 0;
+      totalExpenseFuelSaving += job.expenseFuelSavingBonus || 0;
+      totalExpenseExtraBonus += job.expenseExtraBonus || 0;
+      totalExpenseAllowance += job.expenseAllowance || 0;
+      totalExpenseBackhaul += job.expenseBackhaul || 0;
+      totalExpenseExpressway += job.expenseExpressway || 0;
+      totalExpensePort += job.expensePort || 0;
+      totalExpenseDetention += job.expenseDetention || 0;
+      totalExpenseRepair += job.expenseRepair || 0;
+      totalExpenseOther += job.expenseOther || 0;
 
       // Customer aggregation
       const cust = job.customerName || 'ไม่ระบุ';
@@ -115,6 +162,7 @@ export async function GET(req: NextRequest) {
     const chartData = Object.values(dailyBreakdown).sort((a, b) => a.date.localeCompare(b.date));
 
     return NextResponse.json({
+      availableMonths,
       summary: {
         totalJobs: jobs.length,
         totalGrossRevenue,
@@ -127,6 +175,16 @@ export async function GET(req: NextRequest) {
         totalExpenses: totalTripExpenses,
         totalNetProfit,
         profitMargin: Number(profitMargin.toFixed(1)),
+        expenseLoading: totalExpenseLoading,
+        expenseFuelSaving: totalExpenseFuelSaving,
+        expenseExtraBonus: totalExpenseExtraBonus,
+        expenseAllowance: totalExpenseAllowance,
+        expenseBackhaul: totalExpenseBackhaul,
+        expenseExpressway: totalExpenseExpressway,
+        expensePort: totalExpensePort,
+        expenseDetention: totalExpenseDetention,
+        expenseRepair: totalExpenseRepair,
+        expenseOther: totalExpenseOther,
       },
       chartData,
       topCustomers,

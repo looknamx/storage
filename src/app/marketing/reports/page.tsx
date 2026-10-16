@@ -11,21 +11,54 @@ import {
   Truck,
   RefreshCw,
   Printer,
+  ChevronDown,
 } from 'lucide-react';
+
+const THAI_MONTH_NAMES: Record<string, string> = {
+  'ม.ค.': 'มกราคม',
+  'ก.พ.': 'กุมภาพันธ์',
+  'มี.ค.': 'มีนาคม',
+  'เม.ย.': 'เมษายน',
+  'พ.ค.': 'พฤษภาคม',
+  'มิ.ย.': 'มิถุนายน',
+  'ก.ค.': 'กรกฎาคม',
+  'ส.ค.': 'สิงหาคม',
+  'ก.ย.': 'กันยายน',
+  'ต.ค.': 'ตุลาคม',
+  'พ.ย.': 'พฤศจิกายน',
+  'ธ.ค.': 'ธันวาคม',
+};
 
 export default function MarketingMonthlyReportPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [month, setMonth] = useState<string>('ก.ค.');
-  const [year, setYear] = useState<string>('2569');
+  const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
+  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
 
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/marketing/dashboard?range=all');
+      const params = new URLSearchParams();
+      if (selectedMonthYear && selectedMonthYear !== 'all') {
+        const [m, y] = selectedMonthYear.split('|');
+        if (m) params.set('month', m);
+        if (y) params.set('year', y);
+      } else if (selectedMonthYear === 'all') {
+        params.set('month', 'all');
+        params.set('year', 'all');
+      }
+
+      const res = await fetch(`/api/marketing/dashboard?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
+
+        if (json.availableMonths && json.availableMonths.length > 0) {
+          setAvailableMonths(json.availableMonths);
+          if (!selectedMonthYear) {
+            setSelectedMonthYear(`${json.availableMonths[0].month}|${json.availableMonths[0].year}`);
+          }
+        }
       }
     } catch (e) {
       console.error('Failed to load monthly report:', e);
@@ -36,7 +69,7 @@ export default function MarketingMonthlyReportPage() {
 
   useEffect(() => {
     fetchReport();
-  }, []);
+  }, [selectedMonthYear]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', {
@@ -51,23 +84,32 @@ export default function MarketingMonthlyReportPage() {
 
   const summary = data?.summary || {};
 
-  // Expense breakdown estimation based on total
-  const fuelCost = summary.totalFuelCost || 3128078.46;
-  const loadingUnloading = 75230;
-  const fuelSaving = 136920;
-  const extraBonus = 61950;
-  const allowance = 409100;
-  const backhaul = 162900;
-  const expressway = 38380;
-  const portFee = 1605;
-  const detention = 29400;
-  const repair = 4750;
-  const other = 15200;
-  const totalExpenses = summary.totalExpenses || 4125897.82;
-  const gross = summary.totalGrossRevenue || 6666510.19;
-  const wht = summary.totalWithholdingTax || 62384.35;
-  const netRev = summary.totalNetRevenue || 6604125.84;
-  const netProfit = summary.totalNetProfit || 2540612.37;
+  const fuelCost = summary.totalFuelCost || 0;
+  const loadingUnloading = summary.expenseLoading || 0;
+  const fuelSaving = summary.expenseFuelSaving || 0;
+  const extraBonus = summary.expenseExtraBonus || 0;
+  const allowance = summary.expenseAllowance || 0;
+  const backhaul = summary.expenseBackhaul || 0;
+  const expressway = summary.expenseExpressway || 0;
+  const portFee = summary.expensePort || 0;
+  const detention = summary.expenseDetention || 0;
+  const repair = summary.expenseRepair || 0;
+  const other = summary.expenseOther || 0;
+  const totalExpenses = summary.totalExpenses || 0;
+  const gross = summary.totalGrossRevenue || 0;
+  const wht = summary.totalWithholdingTax || 0;
+  const netRev = summary.totalNetRevenue || 0;
+  const netProfit = summary.totalNetProfit || 0;
+
+  // Active month label
+  let activeMonthLabel = 'ทุกเดือน (ยอดสะสม)';
+  if (selectedMonthYear && selectedMonthYear !== 'all') {
+    const [m, y] = selectedMonthYear.split('|');
+    activeMonthLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[m] || m} ${y}`;
+  } else if (availableMonths.length > 0 && selectedMonthYear !== 'all') {
+    const first = availableMonths[0];
+    activeMonthLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[first.month] || first.month} ${first.year}`;
+  }
 
   return (
     <div className="space-y-6 pb-12 max-w-4xl mx-auto">
@@ -82,12 +124,34 @@ export default function MarketingMonthlyReportPage() {
               รายงานสรุปผลการดำเนินงานและกำไร-ขาดทุน
             </h1>
             <p className="text-xs text-gray-500">
-              Monthly Operational P&L Statement (ประจำเดือน กรกฎาคม 2569)
+              Monthly Operational P&L Statement ({activeMonthLabel})
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Month Selector & Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Month Selector */}
+          <div className="relative">
+            <select
+              value={selectedMonthYear}
+              onChange={(e) => setSelectedMonthYear(e.target.value)}
+              className="px-3.5 py-2 pr-8 rounded-xl border border-purple-300 bg-purple-50/70 text-purple-900 font-bold text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer"
+            >
+              {availableMonths.length > 0 ? (
+                availableMonths.map((item) => (
+                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
+                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} งาน)
+                  </option>
+                ))
+              ) : (
+                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
+              )}
+              <option value="all">ดูข้อมูลทุกเดือน (ยอดรวมสะสม)</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-purple-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
           <button
             type="button"
             onClick={() => window.print()}
@@ -112,13 +176,13 @@ export default function MarketingMonthlyReportPage() {
       <div className="p-8 rounded-3xl bg-white border border-gray-200 shadow-xl space-y-6">
         <div className="border-b border-gray-200 pb-5 text-center">
           <span className="text-xs font-bold text-purple-600 uppercase tracking-widest block mb-1">
-            รายงานงบการเงินและผลการดำเนินงาน
+            รายงานงบการเงินและผลการดำเนินงานขนส่ง
           </span>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">
-            งานประจำเดือน กรกฎาคม 2569
+            {activeMonthLabel}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            สรุปเที่ยววิ่งทั้งหมด {summary.totalJobs || 539} เที่ยว | ระยะทางวิ่งรวม {formatNumber(summary.totalDistanceKm || 283339)} กม.
+            สรุปเที่ยววิ่งทั้งหมด {summary.totalJobs || 0} เที่ยว | ระยะทางวิ่งรวม {formatNumber(summary.totalDistanceKm || 0)} กม.
           </p>
         </div>
 
@@ -154,7 +218,7 @@ export default function MarketingMonthlyReportPage() {
 
           <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 text-xs">
             <div className="flex justify-between py-2.5 px-4 bg-gray-50/60 font-semibold text-gray-800">
-              <span>ค่าน้ำมันเชื้อเพลิง ({formatNumber(summary.totalFuelLiters || 86578)} ลิตร @ {summary.avgFuelEfficiency || 3.27} กม./ลิตร)</span>
+              <span>ค่าน้ำมันเชื้อเพลิง ({formatNumber(summary.totalFuelLiters || 0)} ลิตร @ {summary.avgFuelEfficiency || 0} กม./ลิตร)</span>
               <span className="text-blue-700 font-bold">฿{formatCurrency(fuelCost)}</span>
             </div>
             <div className="flex justify-between py-2 px-4 text-gray-600">
@@ -208,7 +272,7 @@ export default function MarketingMonthlyReportPage() {
         <div className="p-6 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-600/20 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
             <span className="text-xs uppercase font-semibold text-emerald-100 tracking-wider">
-              คงเหลือสุทธิประจำเดือน (Monthly Net Profit)
+              คงเหลือสุทธิประจำงวด (Net Profit)
             </span>
             <div className="text-3xl sm:text-4xl font-black tracking-tight">
               ฿{formatCurrency(netProfit)}
@@ -218,7 +282,7 @@ export default function MarketingMonthlyReportPage() {
           <div className="text-center sm:text-right text-xs text-emerald-100 border-t sm:border-t-0 sm:border-l border-emerald-400/40 pt-3 sm:pt-0 sm:pl-6">
             <span className="block opacity-90">อัตรากำไรสุทธิ (Net Margin)</span>
             <span className="text-2xl font-bold text-white">
-              {summary.profitMargin || 38.5}%
+              {summary.profitMargin || 0}%
             </span>
           </div>
         </div>
@@ -226,4 +290,3 @@ export default function MarketingMonthlyReportPage() {
     </div>
   );
 }
-

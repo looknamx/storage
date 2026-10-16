@@ -40,6 +40,7 @@ export default function RepairOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [monthFilter, setMonthFilter] = useState('')
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -98,6 +99,11 @@ export default function RepairOrdersPage() {
       setLoading(true)
       let url = `/api/repair-orders?search=${encodeURIComponent(search)}`
       if (statusFilter) url += `&status=${statusFilter}`
+      if (monthFilter) {
+        const [m, y] = monthFilter.split('|')
+        if (m) url += `&month=${m}`
+        if (y) url += `&year=${y}`
+      }
 
       const [ordersRes, vehiclesRes] = await Promise.all([
         fetch(url),
@@ -118,7 +124,7 @@ export default function RepairOrdersPage() {
 
   useEffect(() => {
     fetchData()
-  }, [statusFilter])
+  }, [statusFilter, monthFilter])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -248,10 +254,34 @@ export default function RepairOrdersPage() {
           />
         </form>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
+        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+          <select
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 shrink-0"
+          >
+            <option value="">ทุกเดือน (ทั้งหมด)</option>
+            {(() => {
+              const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+              const list = []
+              const now = new Date()
+              for (let i = 0; i < 12; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+                const m = d.getMonth() + 1
+                const yBE = d.getFullYear() + 543
+                list.push({ val: `${m}|${yBE}`, label: `${thaiMonths[m - 1]} ${yBE}` })
+              }
+              return list.map((item) => (
+                <option key={item.val} value={item.val}>
+                  เดือน {item.label}
+                </option>
+              ))
+            })()}
+          </select>
+
+          <Filter className="h-4 w-4 text-slate-400 shrink-0 ml-1" />
           {[
-            { id: '', label: 'ทั้งหมด' },
+            { id: '', label: 'ทุกสถานะ' },
             { id: 'open', label: 'เปิดงาน' },
             { id: 'repairing', label: 'กำลังซ่อม' },
             { id: 'waiting_parts', label: 'รออะไหล่' },

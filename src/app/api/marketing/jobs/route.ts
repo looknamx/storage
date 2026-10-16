@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search')?.trim() || '';
     const customer = searchParams.get('customer')?.trim() || '';
     const month = searchParams.get('month')?.trim() || '';
+    const year = searchParams.get('year')?.trim() || '';
     const isSubcontractor = searchParams.get('isSubcontractor');
     const isPaid = searchParams.get('isPaid');
     const invoiceNo = searchParams.get('invoiceNo')?.trim() || '';
@@ -32,8 +33,12 @@ export async function GET(req: NextRequest) {
       where.customerName = { contains: customer, mode: 'insensitive' };
     }
 
-    if (month) {
+    if (month && month !== 'all') {
       where.jobMonth = month;
+    }
+
+    if (year && year !== 'all') {
+      where.jobYear = parseInt(year, 10);
     }
 
     if (invoiceNo) {
@@ -48,7 +53,7 @@ export async function GET(req: NextRequest) {
       where.isPaid = isPaid === 'true';
     }
 
-    const [total, jobs, aggregations] = await Promise.all([
+    const [total, jobs, aggregations, monthsGroup] = await Promise.all([
       prisma.transportJob.count({ where }),
       prisma.transportJob.findMany({
         where,
@@ -69,7 +74,21 @@ export async function GET(req: NextRequest) {
           fuelLiters: true,
         },
       }),
+      prisma.transportJob.groupBy({
+        by: ['jobYear', 'jobMonth'],
+        _count: { id: true },
+        orderBy: [
+          { jobYear: 'desc' },
+          { jobMonth: 'desc' },
+        ],
+      }),
     ]);
+
+    const availableMonths = monthsGroup.map((g) => ({
+      year: g.jobYear || 2569,
+      month: g.jobMonth || '',
+      count: g._count.id,
+    }));
 
     return NextResponse.json({
       jobs,
@@ -77,6 +96,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      availableMonths,
       aggregations: {
         totalGross: aggregations._sum.grossAmount || 0,
         totalWht: aggregations._sum.withholdingTax || 0,

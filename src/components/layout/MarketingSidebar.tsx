@@ -79,6 +79,9 @@ export default function MarketingSidebar({
 
   const isActive = (path: string): boolean => {
     if (path === '/marketing') return pathname === '/marketing';
+    if (path === '/marketing/jobs') {
+      return pathname === '/marketing/jobs' || (pathname.startsWith('/marketing/jobs/') && pathname !== '/marketing/jobs/new');
+    }
     return pathname.startsWith(path);
   };
 

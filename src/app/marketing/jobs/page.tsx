@@ -21,11 +21,27 @@ import {
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
+const THAI_MONTH_NAMES: Record<string, string> = {
+  'ม.ค.': 'มกราคม',
+  'ก.พ.': 'กุมภาพันธ์',
+  'มี.ค.': 'มีนาคม',
+  'เม.ย.': 'เมษายน',
+  'พ.ค.': 'พฤษภาคม',
+  'มิ.ย.': 'มิถุนายน',
+  'ก.ค.': 'กรกฎาคม',
+  'ส.ค.': 'สิงหาคม',
+  'ก.ย.': 'กันยายน',
+  'ต.ค.': 'ตุลาคม',
+  'พ.ย.': 'พฤศจิกายน',
+  'ธ.ค.': 'ธันวาคม',
+};
+
 export default function MarketingJobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
-  const [month, setMonth] = useState<string>('');
+  const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
+  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
   const [isSubcontractor, setIsSubcontractor] = useState<string>('');
   const [isPaid, setIsPaid] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -49,7 +65,16 @@ export default function MarketingJobsPage() {
         limit: '30',
       });
       if (search) params.set('search', search);
-      if (month) params.set('month', month);
+
+      if (selectedMonthYear && selectedMonthYear !== 'all') {
+        const [m, y] = selectedMonthYear.split('|');
+        if (m) params.set('month', m);
+        if (y) params.set('year', y);
+      } else if (selectedMonthYear === 'all') {
+        params.set('month', 'all');
+        params.set('year', 'all');
+      }
+
       if (isSubcontractor) params.set('isSubcontractor', isSubcontractor);
       if (isPaid) params.set('isPaid', isPaid);
 
@@ -60,6 +85,14 @@ export default function MarketingJobsPage() {
         setTotalPages(data.totalPages || 1);
         setTotalCount(data.total || 0);
         setAggregations(data.aggregations || {});
+
+        if (data.availableMonths && data.availableMonths.length > 0) {
+          setAvailableMonths(data.availableMonths);
+          // Default to latest month if not yet set
+          if (!selectedMonthYear) {
+            setSelectedMonthYear(`${data.availableMonths[0].month}|${data.availableMonths[0].year}`);
+          }
+        }
       }
     } catch (e) {
       console.error('Failed to load transport jobs:', e);
@@ -70,7 +103,7 @@ export default function MarketingJobsPage() {
 
   useEffect(() => {
     fetchJobs();
-  }, [page, month, isSubcontractor, isPaid]);
+  }, [page, selectedMonthYear, isSubcontractor, isPaid]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,17 +185,23 @@ export default function MarketingJobsPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <select
-              value={month}
+              value={selectedMonthYear}
               onChange={(e) => {
-                setMonth(e.target.value);
+                setSelectedMonthYear(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-3 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-purple-900 bg-purple-50/70 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
             >
-              <option value="">ทุกเดือน</option>
-              <option value="ก.ค.">กรกฎาคม (ก.ค.)</option>
-              <option value="มิ.ย.">มิถุนายน (มิ.ย.)</option>
-              <option value="ส.ค.">สิงหาคม (ส.ค.)</option>
+              {availableMonths.length > 0 ? (
+                availableMonths.map((item) => (
+                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
+                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} รายการ)
+                  </option>
+                ))
+              ) : (
+                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
+              )}
+              <option value="all">ดูข้อมูลทุกเดือน (ทั้งหมด)</option>
             </select>
 
             <select
