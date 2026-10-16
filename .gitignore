@@ -44,3 +44,6 @@ next-env.d.ts
 /dist/
 /release/
 
+# local database backups
+/backups/
+
