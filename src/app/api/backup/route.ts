@@ -22,8 +22,12 @@ export async function GET() {
           const stats = fs.statSync(filePath)
           return {
             filename: file,
+            isJson: file.endsWith('.json'),
             sizeBytes: stats.size,
-            sizeFormatted: `${(stats.size / (1024 * 1024)).toFixed(2)} MB`,
+            sizeFormatted:
+              stats.size > 1024 * 1024
+                ? `${(stats.size / (1024 * 1024)).toFixed(2)} MB`
+                : `${(stats.size / 1024).toFixed(1)} KB`,
             createdAt: stats.birthtime,
             modifiedAt: stats.mtime,
           }
@@ -36,7 +40,7 @@ export async function GET() {
     return NextResponse.json({
       backups,
       lastBackup,
-      databasePath: isPostgres ? 'Neon Cloud PostgreSQL (ep-quiet-sky...)' : DB_PATH,
+      databasePath: isPostgres ? 'Neon Cloud PostgreSQL' : DB_PATH,
       isCloud: isPostgres,
     })
   } catch (error) {
@@ -45,8 +49,9 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const body = await request.json().catch(() => ({}))
     const isPostgres = process.env.DATABASE_URL?.startsWith('postgres')
 
     const now = new Date()
@@ -55,76 +60,128 @@ export async function POST() {
       now.getHours()
     )}${pad(now.getMinutes())}${pad(now.getSeconds())}`
 
-    if (isPostgres) {
-      // Export full cloud snapshot as JSON
-      const [categories, suppliers, vehicles, parts, settings] = await Promise.all([
-        prisma.partCategory.findMany(),
-        prisma.supplier.findMany(),
-        prisma.vehicle.findMany(),
-        prisma.part.findMany(),
-        prisma.appSetting.findMany(),
-      ])
+    // Fetch all tables for complete snapshot
+    const [
+      parts,
+      partCategories,
+      suppliers,
+      vehicles,
+      vehicleTypes,
+      odometerReadings,
+      stockReceipts,
+      stockReceiptItems,
+      partIssues,
+      partIssueItems,
+      partReturns,
+      inventoryTransactions,
+      repairOrders,
+      repairOrderItems,
+      maintenancePlans,
+      maintenanceRecords,
+      notifications,
+      auditLogs,
+      appSettings,
+    ] = await Promise.all([
+      prisma.part.findMany(),
+      prisma.partCategory.findMany(),
+      prisma.supplier.findMany(),
+      prisma.vehicle.findMany(),
+      prisma.vehicleType.findMany(),
+      prisma.odometerReading.findMany(),
+      prisma.stockReceipt.findMany(),
+      prisma.stockReceiptItem.findMany(),
+      prisma.partIssue.findMany(),
+      prisma.partIssueItem.findMany(),
+      prisma.partReturn.findMany(),
+      prisma.inventoryTransaction.findMany(),
+      prisma.repairOrder.findMany(),
+      prisma.repairOrderItem.findMany(),
+      prisma.maintenancePlan.findMany(),
+      prisma.maintenanceRecord.findMany(),
+      prisma.notification.findMany(),
+      prisma.auditLog.findMany(),
+      prisma.appSetting.findMany(),
+    ])
 
-      const snapshot = {
-        exportedAt: now.toISOString(),
-        provider: 'Neon PostgreSQL',
-        categories,
+    const snapshot = {
+      version: '1.0.0',
+      exportedAt: now.toISOString(),
+      provider: isPostgres ? 'Neon Cloud PostgreSQL' : 'SQLite',
+      reason: body.reason || 'Database backup snapshot',
+      counts: {
+        parts: parts.length,
+        categories: partCategories.length,
+        suppliers: suppliers.length,
+        vehicles: vehicles.length,
+        vehicleTypes: vehicleTypes.length,
+        odometerReadings: odometerReadings.length,
+        stockReceipts: stockReceipts.length,
+        stockReceiptItems: stockReceiptItems.length,
+        partIssues: partIssues.length,
+        partIssueItems: partIssueItems.length,
+        partReturns: partReturns.length,
+        inventoryTransactions: inventoryTransactions.length,
+        repairOrders: repairOrders.length,
+        repairOrderItems: repairOrderItems.length,
+        maintenancePlans: maintenancePlans.length,
+        maintenanceRecords: maintenanceRecords.length,
+        notifications: notifications.length,
+        auditLogs: auditLogs.length,
+      },
+      data: {
+        parts,
+        partCategories,
         suppliers,
         vehicles,
-        parts,
-        settings,
-      }
-
-      const backupFileName = `cloud_backup_${timestamp}.json`
-
-      // If local filesystem writable, save it
-      try {
-        if (!fs.existsSync(BACKUP_DIR)) {
-          fs.mkdirSync(BACKUP_DIR, { recursive: true })
-        }
-        const backupFilePath = path.join(BACKUP_DIR, backupFileName)
-        fs.writeFileSync(backupFilePath, JSON.stringify(snapshot, null, 2), 'utf8')
-      } catch (e) {
-        // Ignored on read-only serverless
-      }
-
-      return NextResponse.json({
-        success: true,
-        filename: backupFileName,
-        sizeFormatted: `${(JSON.stringify(snapshot).length / 1024).toFixed(1)} KB`,
-        createdAt: now,
-        isCloud: true,
-        message: 'สำรองข้อมูลจาก Neon Cloud สำเร็จ (Automated Cloud Protection)',
-      })
+        vehicleTypes,
+        odometerReadings,
+        stockReceipts,
+        stockReceiptItems,
+        partIssues,
+        partIssueItems,
+        partReturns,
+        inventoryTransactions,
+        repairOrders,
+        repairOrderItems,
+        maintenancePlans,
+        maintenanceRecords,
+        notifications,
+        auditLogs,
+        appSettings,
+      },
     }
 
-    // Local SQLite Backup Fallback
-    if (!fs.existsSync(DB_PATH)) {
-      return NextResponse.json({ error: 'ไม่พบไฟล์ฐานข้อมูลหลัก' }, { status: 404 })
-    }
+    const backupFileName = isPostgres
+      ? `cloud_backup_${timestamp}.json`
+      : `storage_backup_${timestamp}.json`
 
-    if (!fs.existsSync(BACKUP_DIR)) {
-      fs.mkdirSync(BACKUP_DIR, { recursive: true })
-    }
-
-    const backupFileName = `storage_backup_${timestamp}.db`
-    const backupFilePath = path.join(BACKUP_DIR, backupFileName)
-
+    // Save to BACKUP_DIR on server if possible
     try {
-      const sanitizedPath = backupFilePath.replace(/\\/g, '/')
-      await prisma.$executeRawUnsafe(`VACUUM INTO '${sanitizedPath}'`)
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true })
+      }
+      const backupFilePath = path.join(BACKUP_DIR, backupFileName)
+      fs.writeFileSync(backupFilePath, JSON.stringify(snapshot, null, 2), 'utf8')
     } catch (e) {
-      fs.copyFileSync(DB_PATH, backupFilePath)
+      console.warn('Could not write backup to disk:', e)
     }
 
-    const stats = fs.statSync(backupFilePath)
+    const jsonString = JSON.stringify(snapshot)
+    const sizeFormatted =
+      jsonString.length > 1024 * 1024
+        ? `${(jsonString.length / (1024 * 1024)).toFixed(2)} MB`
+        : `${(jsonString.length / 1024).toFixed(1)} KB`
 
     return NextResponse.json({
       success: true,
       filename: backupFileName,
-      sizeBytes: stats.size,
-      sizeFormatted: `${(stats.size / (1024 * 1024)).toFixed(2)} MB`,
-      createdAt: stats.birthtime,
+      sizeFormatted,
+      createdAt: now,
+      isCloud: isPostgres,
+      snapshot, // Full payload returned for direct client-side downloading
+      message: isPostgres
+        ? 'สำรองข้อมูลจาก Neon Cloud สำเร็จ (Cloud Protection Snapshot)'
+        : 'สำรองข้อมูลฐานข้อมูลสำเร็จ',
     })
   } catch (error: any) {
     console.error('Backup creation error:', error)
