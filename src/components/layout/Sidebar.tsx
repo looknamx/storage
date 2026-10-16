@@ -18,6 +18,7 @@ import {
   Settings,
   Truck,
   X,
+  LogOut,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -120,9 +121,34 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </ul>
         </nav>
 
-        {/* Version */}
-        <div className="border-t border-slate-700 px-4 py-3">
-          <p className="text-center text-xs text-slate-500">v1.0.0</p>
+        {/* Exit Application & Version */}
+        <div className="border-t border-slate-700/80 px-3 py-3 space-y-2">
+          <button
+            type="button"
+            onClick={async () => {
+              if (confirm('คุณต้องการปิดการทำงานของระบบและออกจากโปรแกรมใช่หรือไม่?')) {
+                try {
+                  await fetch('/api/system/shutdown', { method: 'POST' })
+                } catch (e) {
+                  // ignore
+                }
+                document.body.innerHTML = `
+                  <div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;background:#0f172a;color:#f8fafc;">
+                    <h2 style="font-size:24px;margin-bottom:8px;">ปิดระบบเรียบร้อยแล้ว</h2>
+                    <p style="color:#94a3b8;font-size:14px;">คุณสามารถปิดหน้าต่างนี้ได้ทันที ขอบคุณครับ</p>
+                  </div>
+                `
+                setTimeout(() => {
+                  window.close()
+                }, 1000)
+              }
+            }}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            <span>ออกจากโปรแกรม</span>
+          </button>
+          <p className="text-center text-[11px] text-slate-500">v1.0.0 (Fleet Storage)</p>
         </div>
       </aside>
     </>

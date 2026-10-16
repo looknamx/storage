@@ -23,8 +23,8 @@ if not exist "data\storage.db" (
     call npx prisma db push
 )
 
-:: 3. เปิดหน้าต่างเบราว์เซอร์อัตโนมัติ
-start http://localhost:3000
+:: 3. เปิดหน้าต่างเบราว์เซอร์อัตโนมัติในลักษณะโปรแกรมเดี่ยว (App Mode ซ่อนช่อง URL)
+start "" msedge --app=http://localhost:3000 2>nul || start "" chrome --app=http://localhost:3000 2>nul || start http://localhost:3000
 
 :: 4. รันเซิร์ฟเวอร์แบบ dev (เหมือน start-system.bat ที่ทำงานได้ 100%)
 npm run dev
