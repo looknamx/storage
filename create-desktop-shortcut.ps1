@@ -3,14 +3,15 @@ $DesktopPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFo
 $ShortcutPath = Join-Path -Path $DesktopPath -ChildPath "FleetManagement.lnk"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$TargetBat = Join-Path -Path $ScriptDir -ChildPath "start-app.bat"
+$TargetVbs = Join-Path -Path $ScriptDir -ChildPath "run-hidden.vbs"
 
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = $TargetBat
+# Point directly to wscript.exe running run-hidden.vbs so CMD is 100% invisible
+$Shortcut.TargetPath = "wscript.exe"
+$Shortcut.Arguments = "`"$TargetVbs`""
 $Shortcut.WorkingDirectory = $ScriptDir
-$Shortcut.Description = "Fleet Vehicle and Garage Storage Management System"
+$Shortcut.Description = "ระบบบริหารรถบริษัท คลังอะไหล่ และประวัติซ่อมบำรุง"
 $Shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,71"
 $Shortcut.Save()
 
-Write-Host "Desktop shortcut created successfully at: $ShortcutPath" -ForegroundColor Green
-
+Write-Host "Desktop shortcut created successfully (Invisible Background CMD mode) at: $ShortcutPath" -ForegroundColor Green
