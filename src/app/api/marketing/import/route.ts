@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import path from 'path';
 import fs from 'fs';
 import * as XLSX from 'xlsx';
+import { syncAllFleetVehiclesFromJobs } from '@/lib/syncVehicleMileage';
 
 const THAI_MONTHS = [
   { short: 'ม.ค.', full: 'มกราคม', num: 1 },
@@ -314,6 +315,14 @@ export async function POST(req: NextRequest) {
       await prisma.transportJob.createMany({ data: chunk });
     }
 
+    // 7. Auto-sync fleet vehicles & update mileage in Program A
+    let fleetSyncStats = { totalTrucks: 0, createdCount: 0, updatedCount: 0 };
+    try {
+      fleetSyncStats = await syncAllFleetVehiclesFromJobs();
+    } catch (e) {
+      console.error('Failed to sync fleet vehicles on import:', e);
+    }
+
     return NextResponse.json({
       success: true,
       count: jobsToCreate.length,
@@ -323,6 +332,7 @@ export async function POST(req: NextRequest) {
       totalGross,
       totalProfit,
       customersCount: customerDbMap.size,
+      fleetSyncStats,
       fileName,
     });
   } catch (error: any) {

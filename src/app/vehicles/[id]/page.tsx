@@ -587,8 +587,22 @@ export default function VehicleDetailPage() {
                     {odo.reading.toLocaleString()} กม.
                   </td>
                   <td className="px-5 py-3 text-xs">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600">
-                      {odo.source}
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${
+                        odo.source === 'transport_job'
+                          ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                          : odo.source === 'repair_order'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {odo.source === 'transport_job'
+                        ? '🚛 งานขนส่ง (โปรแกรม B)'
+                        : odo.source === 'repair_order'
+                        ? '🔧 ใบสั่งซ่อม'
+                        : odo.source === 'manual'
+                        ? '✏️ บันทึกด้วยตนเอง'
+                        : odo.source}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-xs text-slate-500">{odo.notes || '-'}</td>

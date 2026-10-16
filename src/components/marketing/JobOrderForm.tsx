@@ -101,9 +101,43 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
 
     fetch('/api/vehicles')
       .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setCompanyVehicles(data.vehicles || data || []))
+      .then((data) => setCompanyVehicles(Array.isArray(data) ? data : data.vehicles || []))
       .catch(() => {});
   }, []);
+
+  // Find linked company vehicle from Program A
+  const matchedCompanyVehicle = React.useMemo(() => {
+    if (!licensePlate || isSubcontractor || companyVehicles.length === 0) return null;
+    const clean = licensePlate.trim().toLowerCase();
+    // 1. Exact match
+    const exact = companyVehicles.find(
+      (v) => v.licensePlate?.trim().toLowerCase() === clean
+    );
+    if (exact) return exact;
+    // 2. Digits match (e.g. "71-1726" from "นม.71-1726 , 71-1036")
+    const m = clean.match(/\d{1,2}-\d{3,4}/);
+    if (m) {
+      const digits = m[0];
+      const matchDigits = companyVehicles.find((v) =>
+        v.licensePlate?.includes(digits)
+      );
+      if (matchDigits) return matchDigits;
+    }
+    return null;
+  }, [licensePlate, isSubcontractor, companyVehicles]);
+
+  const handleSelectCompanyVehicle = (v: any) => {
+    setLicensePlate(v.licensePlate);
+    if (v.responsiblePerson) {
+      setDriverName(v.responsiblePerson);
+    }
+    if (v.type) {
+      setVehicleType(v.type);
+    }
+    if (v.currentMileage && (!odometerStart || odometerStart === 0)) {
+      setOdometerStart(v.currentMileage);
+    }
+  };
 
   // 1. Auto-calc Distance & Fuel
   useEffect(() => {
@@ -185,6 +219,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
         billingDate: billingDate || null,
         invoiceNo: invoiceNo || null,
         jobOrderNo: jobOrderNo || null,
+        vehicleId: matchedCompanyVehicle?.id || initialData?.vehicleId || null,
         isApproved,
         isPaid,
         isSubcontractor,
@@ -389,32 +424,85 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              ทะเบียนรถ (หัว - หาง) *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-gray-700">
+                ทะเบียนรถ (หัว - หาง) *
+              </label>
+              {!isSubcontractor && companyVehicles.length > 0 && (
+                <span className="text-[10px] text-purple-600 font-medium">
+                  {companyVehicles.length} คันในระบบ
+                </span>
+              )}
+            </div>
+
+            {/* Quick dropdown for company vehicles from Program A */}
+            {!isSubcontractor && companyVehicles.length > 0 && (
+              <div className="mb-2">
+                <select
+                  value={matchedCompanyVehicle?.id || ''}
+                  onChange={(e) => {
+                    const sel = companyVehicles.find((v) => v.id === e.target.value);
+                    if (sel) handleSelectCompanyVehicle(sel);
+                  }}
+                  className="w-full px-2.5 py-1.5 text-xs bg-purple-50/70 border border-purple-200 text-purple-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium cursor-pointer"
+                >
+                  <option value="">⚡ เลือกรถบริษัทจากโปรแกรม A ({companyVehicles.length} คัน)...</option>
+                  {companyVehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.code ? `[${v.code}] ` : ''}{v.licensePlate} {v.responsiblePerson ? `• ${v.responsiblePerson}` : ''} {v.currentMileage ? `(${v.currentMileage.toLocaleString()} กม.)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <input
               type="text"
               required
               value={licensePlate}
               onChange={(e) => setLicensePlate(e.target.value)}
+              list="company-vehicles-datalist"
               placeholder="เช่น นม.71-1726 , 71-1036"
               className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
             />
-            {companyVehicles.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {companyVehicles.slice(0, 4).map((v) => (
-                  <button
-                    type="button"
-                    key={v.id}
-                    onClick={() => {
-                      setLicensePlate(v.licensePlate);
-                      if (v.responsiblePerson) setDriverName(v.responsiblePerson);
-                    }}
-                    className="text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded hover:bg-purple-100"
-                  >
-                    {v.licensePlate}
-                  </button>
-                ))}
+            <datalist id="company-vehicles-datalist">
+              {companyVehicles.map((v) => (
+                <option key={v.id} value={v.licensePlate}>
+                  {v.code ? `${v.code} - ` : ''}{v.licensePlate} {v.responsiblePerson ? `(${v.responsiblePerson})` : ''}
+                </option>
+              ))}
+            </datalist>
+
+            {/* Program A Linked Vehicle Badge */}
+            {matchedCompanyVehicle && (
+              <div className="mt-2 p-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 bg-purple-600 text-white rounded text-[10px] font-bold">
+                      {matchedCompanyVehicle.code || 'รถบริษัท'}
+                    </span>
+                    <span className="font-semibold text-purple-950">
+                      {matchedCompanyVehicle.licensePlate}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold text-purple-700">
+                    ไมล์โปรแกรม A: {matchedCompanyVehicle.currentMileage ? matchedCompanyVehicle.currentMileage.toLocaleString() : 0} กม.
+                  </span>
+                </div>
+                <div className="text-[10px] text-purple-700 flex items-center justify-between">
+                  <span>
+                    คนขับ: {matchedCompanyVehicle.responsiblePerson || 'ไม่ระบุ'}
+                  </span>
+                  {odometerStart === 0 && matchedCompanyVehicle.currentMileage > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setOdometerStart(matchedCompanyVehicle.currentMileage)}
+                      className="text-purple-800 underline font-semibold hover:text-purple-950"
+                    >
+                      กดเพื่อใช้ไมล์นี้
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -639,9 +727,20 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              เลขไมล์ก่อนไป
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-gray-700">
+                เลขไมล์ก่อนไป
+              </label>
+              {matchedCompanyVehicle && matchedCompanyVehicle.currentMileage > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setOdometerStart(matchedCompanyVehicle.currentMileage)}
+                  className="text-[10px] text-purple-600 hover:text-purple-800 font-semibold underline"
+                >
+                  ใช้ไมล์ล่าสุด ({matchedCompanyVehicle.currentMileage.toLocaleString()})
+                </button>
+              )}
+            </div>
             <input
               type="number"
               step="any"
@@ -653,16 +752,23 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              เลขไมล์กลับมา
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-gray-700">
+                เลขไมล์กลับมา
+              </label>
+              {!isSubcontractor && (
+                <span className="text-[10px] text-emerald-600 font-semibold">
+                  ✓ ซิงค์เข้าโปรแกรม A
+                </span>
+              )}
+            </div>
             <input
               type="number"
               step="any"
               value={odometerEnd || ''}
               onChange={(e) => setOdometerEnd(parseFloat(e.target.value) || 0)}
               placeholder="เช่น 203233"
-              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
             />
           </div>
 

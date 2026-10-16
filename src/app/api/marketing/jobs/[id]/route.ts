@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncJobVehicleMileage } from '@/lib/syncVehicleMileage';
 
 export async function GET(
   req: NextRequest,
@@ -85,6 +86,30 @@ export async function PUT(
 
     const netProfit = Number(body.netProfit) || (netRevenue - totalExpenses);
 
+    // Sync vehicle and mileage to Program A (Vehicle table) if company truck
+    let linkedVehicleId = body.vehicleId !== undefined ? body.vehicleId : undefined;
+    if (!Boolean(body.isSubcontractor)) {
+      try {
+        const syncedVehicle = await syncJobVehicleMileage({
+          jobId: id,
+          licensePlate: body.licensePlate?.trim() || '',
+          vehicleId: body.vehicleId || null,
+          driverName: body.driverName?.trim() || null,
+          vehicleType: body.vehicleType || null,
+          odometerEnd,
+          date: body.deliveryDate ? new Date(body.deliveryDate) : new Date(),
+          origin: body.origin?.trim() || null,
+          destination: body.destination?.trim() || null,
+          isSubcontractor: false,
+        });
+        if (syncedVehicle) {
+          linkedVehicleId = syncedVehicle.id;
+        }
+      } catch (e) {
+        console.error('Failed to sync vehicle mileage on update:', e);
+      }
+    }
+
     const updated = await prisma.transportJob.update({
       where: { id },
       data: {
@@ -102,6 +127,7 @@ export async function PUT(
         vehicleType: body.vehicleType || 'รถพ่วง/เทรลเลอร์',
         licensePlate: body.licensePlate?.trim() || 'ไม่ระบุ',
         driverName: body.driverName?.trim() || 'ไม่ระบุ',
+        vehicleId: linkedVehicleId,
         customerName: body.customerName?.trim() || 'ไม่ระบุ',
         origin: body.origin?.trim() || 'ไม่ระบุ',
         weightTicketNo: body.weightTicketNo?.trim() || null,
