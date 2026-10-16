@@ -10,8 +10,8 @@ echo.
 echo กำลังเริ่มต้นระบบ...
 echo.
 
-:: เปิดเป็น App Window ไร้ช่อง URL ในเบราว์เซอร์ (Chrome / Edge / Default browser)
-start "" msedge --app=http://localhost:3000 2>nul || start "" chrome --app=http://localhost:3000 2>nul || start http://localhost:3000
+:: เปิดหน้าจอ Loading Screen ทันทีในรูปแบบ App Mode (หน้าจอจะเปลี่ยนเป็นหน้าหลักอัตโนมัติเมื่อระบบพร้อม)
+start "" msedge --app="%~dp0loading.html" 2>nul || start "" chrome --app="%~dp0loading.html" 2>nul || start "" "%~dp0loading.html"
 
 npm run dev
 pause
