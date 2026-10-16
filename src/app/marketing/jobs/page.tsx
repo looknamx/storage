@@ -41,7 +41,8 @@ export default function MarketingJobsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
   const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
-  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isSubcontractor, setIsSubcontractor] = useState<string>('');
   const [isPaid, setIsPaid] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -57,6 +58,11 @@ export default function MarketingJobsPage() {
     totalFuelLiters: 0,
   });
 
+  const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
+  const monthsInYear = availableMonths.filter(
+    (m) => selectedYear === 'all' || !selectedYear || String(m.year) === selectedYear
+  );
+
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -66,13 +72,11 @@ export default function MarketingJobsPage() {
       });
       if (search) params.set('search', search);
 
-      if (selectedMonthYear && selectedMonthYear !== 'all') {
-        const [m, y] = selectedMonthYear.split('|');
-        if (m) params.set('month', m);
-        if (y) params.set('year', y);
-      } else if (selectedMonthYear === 'all') {
-        params.set('month', 'all');
-        params.set('year', 'all');
+      if (selectedYear && selectedYear !== 'all') {
+        params.set('year', selectedYear);
+      }
+      if (selectedMonth && selectedMonth !== 'all') {
+        params.set('month', selectedMonth);
       }
 
       if (isSubcontractor) params.set('isSubcontractor', isSubcontractor);
@@ -88,9 +92,14 @@ export default function MarketingJobsPage() {
 
         if (data.availableMonths && data.availableMonths.length > 0) {
           setAvailableMonths(data.availableMonths);
-          // Default to latest month if not yet set
-          if (!selectedMonthYear) {
-            setSelectedMonthYear(`${data.availableMonths[0].month}|${data.availableMonths[0].year}`);
+          const years = Array.from(new Set(data.availableMonths.map((m: any) => m.year))).sort(
+            (a: any, b: any) => b - a
+          );
+          if (!selectedYear && years.length > 0) {
+            setSelectedYear(String(years[0]));
+          }
+          if (!selectedMonth) {
+            setSelectedMonth(data.availableMonths[0].month);
           }
         }
       }
@@ -103,7 +112,7 @@ export default function MarketingJobsPage() {
 
   useEffect(() => {
     fetchJobs();
-  }, [page, selectedMonthYear, isSubcontractor, isPaid]);
+  }, [page, selectedYear, selectedMonth, isSubcontractor, isPaid]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,24 +193,38 @@ export default function MarketingJobsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Year Selector */}
             <select
-              value={selectedMonthYear}
+              value={selectedYear}
               onChange={(e) => {
-                setSelectedMonthYear(e.target.value);
+                setSelectedYear(e.target.value);
                 setPage(1);
               }}
               className="px-3 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-purple-900 bg-purple-50/70 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
             >
-              {availableMonths.length > 0 ? (
-                availableMonths.map((item) => (
-                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
-                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} รายการ)
-                  </option>
-                ))
-              ) : (
-                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
-              )}
-              <option value="all">ดูข้อมูลทุกเดือน (ทั้งหมด)</option>
+              {availableYears.map((yr) => (
+                <option key={yr} value={String(yr)}>
+                  ปี พ.ศ. {yr}
+                </option>
+              ))}
+              <option value="all">ทุกปี (ทั้งหมด)</option>
+            </select>
+
+            {/* Month Selector */}
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-purple-900 bg-purple-50/70 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+            >
+              {monthsInYear.map((item) => (
+                <option key={`${item.month}-${item.year}`} value={item.month}>
+                  เดือน {THAI_MONTH_NAMES[item.month] || item.month} ({item.count} งาน)
+                </option>
+              ))}
+              <option value="all">ทุกเดือน</option>
             </select>
 
             <select

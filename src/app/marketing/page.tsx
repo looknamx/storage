@@ -49,23 +49,30 @@ const THAI_MONTH_NAMES: Record<string, string> = {
 export default function MarketingDashboardPage() {
   const [range, setRange] = useState<string>('month');
   const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
-  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<any>(null);
+
+  const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
+  const monthsInYear = availableMonths.filter(
+    (m) => selectedYear === 'all' || !selectedYear || String(m.year) === selectedYear
+  );
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       let url = `/api/marketing/dashboard?range=${range}`;
 
-      if (range === 'month' && selectedMonthYear && selectedMonthYear !== 'all') {
-        const [m, y] = selectedMonthYear.split('|');
-        if (m) url += `&month=${encodeURIComponent(m)}`;
-        if (y) url += `&year=${encodeURIComponent(y)}`;
-      } else if (range === 'month' && selectedMonthYear === 'all') {
-        url += '&month=all&year=all';
+      if (range === 'month') {
+        if (selectedYear && selectedYear !== 'all') {
+          url += `&year=${encodeURIComponent(selectedYear)}`;
+        }
+        if (selectedMonth && selectedMonth !== 'all') {
+          url += `&month=${encodeURIComponent(selectedMonth)}`;
+        }
       }
 
       if (range === 'custom' && customStart && customEnd) {
@@ -78,8 +85,14 @@ export default function MarketingDashboardPage() {
 
         if (json.availableMonths && json.availableMonths.length > 0) {
           setAvailableMonths(json.availableMonths);
-          if (!selectedMonthYear) {
-            setSelectedMonthYear(`${json.availableMonths[0].month}|${json.availableMonths[0].year}`);
+          const years = Array.from(new Set(json.availableMonths.map((m: any) => m.year))).sort(
+            (a: any, b: any) => b - a
+          );
+          if (!selectedYear && years.length > 0) {
+            setSelectedYear(String(years[0]));
+          }
+          if (!selectedMonth) {
+            setSelectedMonth(json.availableMonths[0].month);
           }
         }
       }
@@ -92,7 +105,7 @@ export default function MarketingDashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [range, selectedMonthYear]);
+  }, [range, selectedYear, selectedMonth]);
 
   const handleCustomApply = () => {
     if (customStart && customEnd) {
@@ -170,37 +183,58 @@ export default function MarketingDashboardPage() {
       {/* Date Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-gray-200 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Month Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500">เลือกเดือน:</span>
+          {/* Year Selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-gray-500">ปี:</span>
             <select
-              value={range === 'month' ? selectedMonthYear : range}
+              value={selectedYear}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'custom') {
-                  setRange('custom');
-                } else if (val === 'all') {
-                  setRange('all');
-                } else {
-                  setRange('month');
-                  setSelectedMonthYear(val);
-                }
+                setSelectedYear(e.target.value);
+                setRange('month');
               }}
-              className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/70 text-xs font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+              className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/70 text-xs font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm cursor-pointer"
             >
-              {availableMonths.length > 0 ? (
-                availableMonths.map((item) => (
-                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
-                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} งาน)
-                  </option>
-                ))
-              ) : (
-                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
-              )}
-              <option value="all">ดูข้อมูลทุกเดือน (ยอดรวมทั้งหมด)</option>
-              <option value="custom">กำหนดช่วงวันที่เอง (Custom Range)</option>
+              {availableYears.map((yr) => (
+                <option key={yr} value={String(yr)}>
+                  ปี พ.ศ. {yr}
+                </option>
+              ))}
+              <option value="all">ทุกปี (ทั้งหมด)</option>
             </select>
           </div>
+
+          {/* Month Selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-gray-500">เดือน:</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                setRange('month');
+              }}
+              className="px-3 py-1.5 rounded-xl border border-purple-200 bg-purple-50/70 text-xs font-bold text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm cursor-pointer"
+            >
+              {monthsInYear.map((item) => (
+                <option key={`${item.month}-${item.year}`} value={item.month}>
+                  เดือน {THAI_MONTH_NAMES[item.month] || item.month} ({item.count} งาน)
+                </option>
+              ))}
+              <option value="all">ทุกเดือน (รวมทั้งปี)</option>
+            </select>
+          </div>
+
+          {/* Custom Date Range Toggle */}
+          <button
+            type="button"
+            onClick={() => setRange(range === 'custom' ? 'month' : 'custom')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+              range === 'custom'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            ระบุช่วงวันที่เอง
+          </button>
         </div>
 
         {range === 'custom' && (

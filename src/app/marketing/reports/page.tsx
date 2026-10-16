@@ -33,19 +33,23 @@ export default function MarketingMonthlyReportPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
-  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
+  const monthsInYear = availableMonths.filter(
+    (m) => selectedYear === 'all' || !selectedYear || String(m.year) === selectedYear
+  );
 
   const fetchReport = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (selectedMonthYear && selectedMonthYear !== 'all') {
-        const [m, y] = selectedMonthYear.split('|');
-        if (m) params.set('month', m);
-        if (y) params.set('year', y);
-      } else if (selectedMonthYear === 'all') {
-        params.set('month', 'all');
-        params.set('year', 'all');
+      if (selectedYear && selectedYear !== 'all') {
+        params.set('year', selectedYear);
+      }
+      if (selectedMonth && selectedMonth !== 'all') {
+        params.set('month', selectedMonth);
       }
 
       const res = await fetch(`/api/marketing/dashboard?${params.toString()}`);
@@ -55,8 +59,14 @@ export default function MarketingMonthlyReportPage() {
 
         if (json.availableMonths && json.availableMonths.length > 0) {
           setAvailableMonths(json.availableMonths);
-          if (!selectedMonthYear) {
-            setSelectedMonthYear(`${json.availableMonths[0].month}|${json.availableMonths[0].year}`);
+          const years = Array.from(new Set(json.availableMonths.map((m: any) => m.year))).sort(
+            (a: any, b: any) => b - a
+          );
+          if (!selectedYear && years.length > 0) {
+            setSelectedYear(String(years[0]));
+          }
+          if (!selectedMonth) {
+            setSelectedMonth(json.availableMonths[0].month);
           }
         }
       }
@@ -69,7 +79,7 @@ export default function MarketingMonthlyReportPage() {
 
   useEffect(() => {
     fetchReport();
-  }, [selectedMonthYear]);
+  }, [selectedYear, selectedMonth]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', {
@@ -101,14 +111,15 @@ export default function MarketingMonthlyReportPage() {
   const netRev = summary.totalNetRevenue || 0;
   const netProfit = summary.totalNetProfit || 0;
 
-  // Active month label
-  let activeMonthLabel = 'ทุกเดือน (ยอดสะสม)';
-  if (selectedMonthYear && selectedMonthYear !== 'all') {
-    const [m, y] = selectedMonthYear.split('|');
-    activeMonthLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[m] || m} ${y}`;
-  } else if (availableMonths.length > 0 && selectedMonthYear !== 'all') {
+  // Active label
+  let activeLabel = 'ทุกปี (ยอดสะสม)';
+  if (selectedYear && selectedYear !== 'all' && selectedMonth && selectedMonth !== 'all') {
+    activeLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[selectedMonth] || selectedMonth} ${selectedYear}`;
+  } else if (selectedYear && selectedYear !== 'all' && selectedMonth === 'all') {
+    activeLabel = `รายงานรวมตลอดทั้งปี พ.ศ. ${selectedYear}`;
+  } else if (availableMonths.length > 0 && selectedYear !== 'all') {
     const first = availableMonths[0];
-    activeMonthLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[first.month] || first.month} ${first.year}`;
+    activeLabel = `งานประจำเดือน ${THAI_MONTH_NAMES[first.month] || first.month} ${first.year}`;
   }
 
   return (
@@ -124,33 +135,40 @@ export default function MarketingMonthlyReportPage() {
               รายงานสรุปผลการดำเนินงานและกำไร-ขาดทุน
             </h1>
             <p className="text-xs text-gray-500">
-              Monthly Operational P&L Statement ({activeMonthLabel})
+              Monthly Operational P&L Statement ({activeLabel})
             </p>
           </div>
         </div>
 
-        {/* Month Selector & Action Buttons */}
+        {/* Year & Month Selectors & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Year Selector */}
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-purple-300 bg-purple-50/70 text-purple-900 font-bold text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+          >
+            {availableYears.map((yr) => (
+              <option key={yr} value={String(yr)}>
+                ปี พ.ศ. {yr}
+              </option>
+            ))}
+            <option value="all">ทุกปี (ทั้งหมด)</option>
+          </select>
+
           {/* Month Selector */}
-          <div className="relative">
-            <select
-              value={selectedMonthYear}
-              onChange={(e) => setSelectedMonthYear(e.target.value)}
-              className="px-3.5 py-2 pr-8 rounded-xl border border-purple-300 bg-purple-50/70 text-purple-900 font-bold text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer"
-            >
-              {availableMonths.length > 0 ? (
-                availableMonths.map((item) => (
-                  <option key={`${item.month}|${item.year}`} value={`${item.month}|${item.year}`}>
-                    เดือน {THAI_MONTH_NAMES[item.month] || item.month} {item.year} ({item.count} งาน)
-                  </option>
-                ))
-              ) : (
-                <option value="ก.ค.|2569">เดือน กรกฎาคม 2569</option>
-              )}
-              <option value="all">ดูข้อมูลทุกเดือน (ยอดรวมสะสม)</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-purple-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-purple-300 bg-purple-50/70 text-purple-900 font-bold text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+          >
+            {monthsInYear.map((item) => (
+              <option key={`${item.month}-${item.year}`} value={item.month}>
+                เดือน {THAI_MONTH_NAMES[item.month] || item.month} ({item.count} งาน)
+              </option>
+            ))}
+            <option value="all">ทุกเดือน (รวมทั้งปี)</option>
+          </select>
 
           <button
             type="button"
@@ -179,7 +197,7 @@ export default function MarketingMonthlyReportPage() {
             รายงานงบการเงินและผลการดำเนินงานขนส่ง
           </span>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">
-            {activeMonthLabel}
+            {activeLabel}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             สรุปเที่ยววิ่งทั้งหมด {summary.totalJobs || 0} เที่ยว | ระยะทางวิ่งรวม {formatNumber(summary.totalDistanceKm || 0)} กม.

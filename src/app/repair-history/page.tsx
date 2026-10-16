@@ -28,6 +28,7 @@ export default function RepairHistoryPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [yearFilter, setYearFilter] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
@@ -36,11 +37,8 @@ export default function RepairHistoryPage() {
     try {
       setLoading(true)
       let url = `/api/repair-orders?search=${encodeURIComponent(search)}`
-      if (monthFilter) {
-        const [m, y] = monthFilter.split('|')
-        if (m) url += `&month=${m}`
-        if (y) url += `&year=${y}`
-      }
+      if (yearFilter) url += `&year=${yearFilter}`
+      if (monthFilter) url += `&month=${monthFilter}`
       const res = await fetch(url)
       const data = await res.json()
       setOrders(Array.isArray(data) ? data : [])
@@ -53,7 +51,7 @@ export default function RepairHistoryPage() {
 
   useEffect(() => {
     fetchHistory()
-  }, [monthFilter])
+  }, [yearFilter, monthFilter])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -161,31 +159,56 @@ export default function RepairHistoryPage() {
           />
         </form>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-slate-500 font-medium shrink-0">เลือกเดือน:</span>
-          <select
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full sm:w-auto"
-          >
-            <option value="">ทุกเดือน (ทั้งหมด)</option>
-            {(() => {
-              const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-              const list = []
-              const now = new Date()
-              for (let i = 0; i < 12; i++) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-                const m = d.getMonth() + 1
-                const yBE = d.getFullYear() + 543
-                list.push({ val: `${m}|${yBE}`, label: `${thaiMonths[m - 1]} ${yBE}` })
-              }
-              return list.map((item) => (
-                <option key={item.val} value={item.val}>
-                  เดือน {item.label}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Year Selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-500 font-medium shrink-0">ปี:</span>
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              className="px-2.5 py-2 rounded-lg text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">ทุกปี (ทั้งหมด)</option>
+              {(() => {
+                const currentBE = new Date().getFullYear() + 543
+                return [currentBE, currentBE - 1, currentBE - 2].map((yr) => (
+                  <option key={yr} value={String(yr)}>
+                    ปี พ.ศ. {yr}
+                  </option>
+                ))
+              })()}
+            </select>
+          </div>
+
+          {/* Month Selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-500 font-medium shrink-0">เดือน:</span>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="px-2.5 py-2 rounded-lg text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">ทุกเดือน</option>
+              {[
+                { num: '1', name: 'ม.ค.' },
+                { num: '2', name: 'ก.พ.' },
+                { num: '3', name: 'มี.ค.' },
+                { num: '4', name: 'เม.ย.' },
+                { num: '5', name: 'พ.ค.' },
+                { num: '6', name: 'มิ.ย.' },
+                { num: '7', name: 'ก.ค.' },
+                { num: '8', name: 'ส.ค.' },
+                { num: '9', name: 'ก.ย.' },
+                { num: '10', name: 'ต.ค.' },
+                { num: '11', name: 'พ.ย.' },
+                { num: '12', name: 'ธ.ค.' },
+              ].map((m) => (
+                <option key={m.num} value={m.num}>
+                  {m.name}
                 </option>
-              ))
-            })()}
-          </select>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
