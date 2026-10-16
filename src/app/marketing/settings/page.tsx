@@ -99,18 +99,18 @@ export default function MarketingSettingsPage() {
     try {
       setExportingSnapshot(true);
       setErrorMessage('');
-      const res = await fetch('/api/system/export-snapshot');
+      const res = await fetch('/api/system/export-snapshot?scope=program_b');
       if (!res.ok) throw new Error('ไม่สามารถดาวน์โหลดไฟล์สำรองข้อมูลได้');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `marketing_full_snapshot_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.json`;
+      a.download = `marketing_snapshot_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (Full Snapshot) สำเร็จเรียบร้อยแล้ว');
+      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (โปรแกรม B Snapshot) สำเร็จเรียบร้อยแล้ว');
     } catch (err: any) {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการดาวน์โหลดสำรองข้อมูล');
     } finally {
@@ -127,7 +127,7 @@ export default function MarketingSettingsPage() {
       const res = await fetch('/api/system/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmText: 'RESET' }),
+        body: JSON.stringify({ confirmText: 'RESET', scope: 'program_b' }),
       });
 
       const data = await res.json();
@@ -327,10 +327,10 @@ export default function MarketingSettingsPage() {
             </div>
             <div>
               <h2 className="text-base font-bold text-red-950 flex items-center gap-2">
-                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบทั้งหมด (Project Handover)
+                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบแผนงานการตลาด (โปรแกรม B)
               </h2>
               <p className="text-xs text-red-700 mt-0.5">
-                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการส่งมอบโปรเจกต์ให้เริ่มบันทึกข้อมูลเที่ยววิ่งและลูกค้าจริงใหม่ทั้งหมด
+                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการล้างข้อมูลเที่ยววิ่งและลูกค้าเพื่อเริ่มบันทึกใหม่ (ข้อมูลรถและสต็อกอะไหล่ของฝ่ายซ่อมบำรุง โปรแกรม A จะไม่ได้รับผลกระทบ)
               </p>
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function MarketingSettingsPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
             >
               <Trash2 className="h-4 w-4" />
-              ลบข้อมูลทั้งหมดเพื่อเริ่มใช้งานใหม่
+              ลบข้อมูลเฉพาะโปรแกรม B เพื่อเริ่มใช้งานใหม่
             </button>
           </div>
         </div>
@@ -367,17 +367,17 @@ export default function MarketingSettingsPage() {
               ระบบบังคับสำรองข้อมูลอัตโนมัติ (Forced Safety Backup)
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลทั้งหมดทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
+              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลของโปรแกรม B ทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
             </p>
           </div>
 
           <div className="bg-white/80 p-3.5 rounded-xl border border-red-100 space-y-1.5">
             <div className="font-bold text-red-800 flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              พร้อมเริ่มใช้งานทันทีหลังล้างระบบ
+              แยกข้อมูลอิสระ ไม่กระทบโปรแกรม A
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              ระบบจะรักษาโครงสร้างตารางและการตั้งค่าพื้นฐานไว้ เพื่อให้ผู้ใช้งานสามารถเริ่มคีย์เที่ยววิ่งใหม่ได้ทันที
+              การล้างข้อมูลนี้จะลบเฉพาะเที่ยววิ่งและลูกค้าของฝ่ายการตลาดเท่านั้น <strong>ข้อมูลรถและสต็อกอะไหล่ในโปรแกรมบริหารแผนซ่อมบำรุง (โปรแกรม A) จะคงอยู่ครบถ้วน 100%</strong>
             </p>
           </div>
         </div>
@@ -405,15 +405,18 @@ export default function MarketingSettingsPage() {
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">ยืนยันการล้างข้อมูลระบบทั้งหมด</h3>
-                <p className="text-xs text-red-600 font-medium">การกระทำนี้จะล้างข้อมูลธุรกรรมและพร้อมส่งมอบงาน</p>
+                <h3 className="font-bold text-slate-900 text-base">ยืนยันการล้างข้อมูลระบบแผนงานการตลาด (โปรแกรม B)</h3>
+                <p className="text-xs text-red-600 font-medium">Project Handover - ส่งมอบระบบการตลาดและเริ่มคีย์ข้อมูลใหม่</p>
               </div>
             </div>
 
             <div className="text-xs text-slate-600 space-y-2 bg-red-50/60 p-3.5 rounded-xl border border-red-100 leading-relaxed">
               <p className="font-semibold text-red-800">โปรดทราบ:</p>
               <ul className="list-disc list-inside space-y-1 text-slate-700 text-[11px]">
-                <li>ข้อมูลงานขนส่ง เที่ยววิ่ง และข้อมูลธุรกรรมทั้งหมดจะถูกลบ</li>
+                <li>ข้อมูลงานขนส่ง เที่ยววิ่ง และข้อมูลลูกค้าการตลาดทั้งหมดจะถูกลบ</li>
+                <li className="font-semibold text-emerald-700">
+                  ✓ ข้อมูลทะเบียนรถ สต็อกอะไหล่ และใบสั่งซ่อมในโปรแกรม A จะคงอยู่ครบถ้วน 100% ไม่ถูกลบ
+                </li>
                 <li>
                   ระบบจะ<strong>ทำการดาวน์โหลดไฟล์สำรองข้อมูล (Safety Snapshot JSON) ลงในเครื่องของท่านโดยอัตโนมัติ</strong>ก่อนเริ่มการลบ
                 </li>
