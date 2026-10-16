@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
+  LayoutGrid,
   Car,
   Package,
   PackagePlus,
@@ -38,7 +39,7 @@ const menuGroups: MenuGroup[] = [
   {
     id: 'overview',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { label: 'ข้อมูลรถบริษัท', icon: Car, path: '/vehicles' },
     ],
   },
@@ -109,7 +110,7 @@ export default function Sidebar({
   }, [pathname]);
 
   const isActive = (path: string): boolean => {
-    if (path === '/') return pathname === '/';
+    if (path === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(path);
   };
 
@@ -305,12 +306,31 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Exit Application & Version */}
+        {/* Portal Switcher & Exit Application & Version */}
         <div
           className={`border-t border-slate-700/80 py-3 transition-all ${
-            isCollapsed ? 'px-2 flex flex-col items-center' : 'px-3 space-y-2'
+            isCollapsed ? 'px-2 flex flex-col items-center space-y-2' : 'px-3 space-y-2'
           }`}
         >
+          {/* Switch Module / Return to Portal */}
+          <Link
+            href="/"
+            title={isCollapsed ? 'สลับระบบงาน (Portal)' : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700/80 hover:text-white transition-colors ${
+              isCollapsed
+                ? 'h-10 w-10 justify-center group relative'
+                : 'w-full gap-3 px-3 py-2'
+            }`}
+          >
+            <LayoutGrid className="h-5 w-5 shrink-0 text-blue-400" />
+            {!isCollapsed && <span>สลับระบบงาน (Portal)</span>}
+            {isCollapsed && (
+              <div className="absolute left-full ml-3 hidden lg:group-hover:flex items-center px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+                สลับระบบงาน (Portal)
+              </div>
+            )}
+          </Link>
+
           <button
             type="button"
             onClick={async () => {

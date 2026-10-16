@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import AutoBackupRunner from '@/components/AutoBackupRunner';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer
   const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapsed state
 
@@ -43,6 +45,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const handleSidebarClose = useCallback(() => {
     setSidebarOpen(false);
   }, []);
+
+  // When visiting portal landing page (root path), render clean standalone window without sidebar/topbar
+  if (pathname === '/') {
+    return (
+      <main className="min-h-screen w-full">
+        {children}
+      </main>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900">

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, X } from 'lucide-react';
+import Link from 'next/link';
+import { Menu, Search, X, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const THAI_MONTHS = [
@@ -95,9 +96,20 @@ export default function Topbar({ onMenuToggle, isCollapsed }: TopbarProps) {
         </div>
       </form>
 
-      {/* Right: Current date in Thai Buddhist Era */}
-      <div className="hidden shrink-0 items-center gap-2 sm:flex">
-        <span className="text-sm font-medium text-gray-600">{currentDate}</span>
+      {/* Right: Switch System (Portal) & Current date */}
+      <div className="flex shrink-0 items-center gap-2.5">
+        <Link
+          href="/"
+          title="สลับระบบงาน (Enterprise Portal)"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 transition-colors shadow-sm"
+        >
+          <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
+          <span className="hidden sm:inline">สลับระบบ</span>
+        </Link>
+
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+          <span className="text-sm font-medium text-gray-600">{currentDate}</span>
+        </div>
       </div>
     </header>
   );
