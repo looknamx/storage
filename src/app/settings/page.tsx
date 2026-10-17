@@ -195,7 +195,7 @@ export default function SettingsPage() {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
-      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (โปรแกรม A Snapshot) สำเร็จเรียบร้อยแล้ว')
+      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (Maintenance Snapshot) สำเร็จเรียบร้อยแล้ว')
     } catch (err: any) {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการดาวน์โหลดสำรองข้อมูล')
     } finally {
@@ -549,10 +549,10 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 className="text-base font-bold text-red-950 flex items-center gap-2">
-                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบซ่อมบำรุง (โปรแกรม A)
+                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบซ่อมบำรุง
               </h2>
               <p className="text-xs text-red-700 mt-0.5">
-                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการล้างข้อมูลรถและสต็อกอะไหล่เพื่อเริ่มบันทึกใหม่ (ข้อมูลเที่ยววิ่งของฝ่ายการตลาด โปรแกรม B จะไม่ได้รับผลกระทบ)
+                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการล้างข้อมูลรถและสต็อกอะไหล่เพื่อเริ่มบันทึกใหม่ (ข้อมูลเที่ยววิ่งของฝ่ายการตลาดจะไม่ได้รับผลกระทบ)
               </p>
             </div>
           </div>
@@ -577,7 +577,7 @@ export default function SettingsPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
             >
               <Trash2 className="h-4 w-4" />
-              ลบข้อมูลเฉพาะโปรแกรม A เพื่อเริ่มใช้งานใหม่
+              ลบข้อมูลเฉพาะระบบซ่อมบำรุงเพื่อเริ่มใช้งานใหม่
             </button>
           </div>
         </div>
@@ -589,17 +589,17 @@ export default function SettingsPage() {
               ระบบบังคับสำรองข้อมูลอัตโนมัติ (Forced Safety Backup)
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลของโปรแกรม A ทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
+              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลของระบบซ่อมบำรุงทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
             </p>
           </div>
 
           <div className="bg-white/80 p-3.5 rounded-xl border border-red-100 space-y-1.5">
             <div className="font-bold text-red-800 flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              แยกข้อมูลอิสระ ไม่กระทบโปรแกรม B
+              แยกข้อมูลอิสระ ไม่กระทบฝ่ายการตลาด
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              การล้างข้อมูลนี้จะลบเฉพาะข้อมูลรถและอะไหล่ของฝ่ายซ่อมบำรุงเท่านั้น <strong>ข้อมูลเที่ยววิ่งและลูกค้าในโปรแกรมแผนงานการตลาด (โปรแกรม B) จะคงอยู่ครบถ้วน 100%</strong>
+              การล้างข้อมูลนี้จะลบเฉพาะข้อมูลรถและอะไหล่ของฝ่ายซ่อมบำรุงเท่านั้น <strong>ข้อมูลเที่ยววิ่งและลูกค้าในระบบแผนงานการตลาดจะคงอยู่ครบถ้วน 100%</strong>
             </p>
           </div>
         </div>
@@ -687,7 +687,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
-                  ยืนยันการล้างข้อมูลระบบซ่อมบำรุง (โปรแกรม A)
+                  ยืนยันการล้างข้อมูลระบบซ่อมบำรุง
                 </h3>
                 <p className="text-xs text-slate-500">
                   Project Handover - ส่งมอบระบบซ่อมบำรุงและเริ่มคีย์ข้อมูลใหม่
@@ -705,7 +705,7 @@ export default function SettingsPage() {
             <div className="space-y-3 text-xs text-slate-600">
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 space-y-1.5">
                 <p className="font-bold text-red-800">
-                  ⚠️ การดำเนินการนี้จะลบข้อมูลเฉพาะโปรแกรม A ดังนี้:
+                  ⚠️ การดำเนินการนี้จะลบข้อมูลเฉพาะระบบซ่อมบำรุงดังนี้:
                 </p>
                 <ul className="list-disc list-inside space-y-0.5 text-[11px] text-red-700">
                   <li>ข้อมูลอะไหล่ทั้งหมด และประวัติการรับเข้า-เบิกจ่าย-คืนอะไหล่</li>
@@ -713,7 +713,7 @@ export default function SettingsPage() {
                   <li>ใบงานซ่อมทั้งหมด และประวัติการซ่อมบำรุง</li>
                   <li>รายชื่อผู้จำหน่าย (Suppliers) และรายการแจ้งเตือนทั้งหมด</li>
                   <li className="font-semibold text-emerald-700 mt-1">
-                    ✓ ข้อมูลเที่ยววิ่งขนส่งสินค้าและลูกค้าในโปรแกรม B จะคงอยู่ครบถ้วน 100% ไม่ถูกลบ
+                    ✓ ข้อมูลเที่ยววิ่งขนส่งสินค้าและลูกค้าในระบบการตลาดจะคงอยู่ครบถ้วน 100% ไม่ถูกลบ
                   </li>
                 </ul>
               </div>
@@ -724,7 +724,7 @@ export default function SettingsPage() {
                   ระบบบังคับสำรองข้อมูลลงเครื่องทันที (Forced Backup)
                 </p>
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  เมื่อกดยืนยัน ระบบจะรวบรวมข้อมูลทั้งหมดของโปรแกรม A เป็นไฟล์ Snapshot และสั่งให้เว็บบราวเซอร์ดาวน์โหลดไฟล์ <code>fleet_backup_before_reset_*.json</code> ลงโฟลเดอร์ Downloads ในเครื่องของท่านทันทีโดยอัตโนมัติก่อนที่จะเริ่มทำการลบข้อมูล
+                  เมื่อกดยืนยัน ระบบจะรวบรวมข้อมูลทั้งหมดของระบบซ่อมบำรุงเป็นไฟล์ Snapshot และสั่งให้เว็บบราวเซอร์ดาวน์โหลดไฟล์ <code>fleet_backup_before_reset_*.json</code> ลงโฟลเดอร์ Downloads ในเครื่องของท่านทันทีโดยอัตโนมัติก่อนที่จะเริ่มทำการลบข้อมูล
                 </p>
               </div>
 

@@ -116,14 +116,9 @@ export default function ProcurementDashboardPage() {
       {/* Top Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-800">
-              แดชบอร์ดฝ่ายจัดซื้อ (Procurement Dashboard)
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              โปรแกรม C
-            </span>
-          </div>
+          <h1 className="text-2xl font-bold text-slate-800">
+            แดชบอร์ดฝ่ายจัดซื้อ (Procurement Dashboard)
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             ระบบบริหารจัดการแผนงานฝ่ายจัดซื้อ ติดตามใบขอซื้อ (PR), ใบสั่งซื้อ (PO) และจัดการผู้จำหน่าย
           </p>
@@ -166,23 +161,6 @@ export default function ProcurementDashboardPage() {
             </div>
           );
         })}
-      </div>
-
-      {/* Welcome & System Status Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-800 to-teal-700 text-white p-6 sm:p-7 shadow-md">
-        <div className="relative z-10 max-w-3xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/30 text-emerald-100 border border-emerald-400/30">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>โครงสร้างเมนูด้านข้าง (Sidebar) พร้อมใช้งาน</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold">
-            ระบบแผนงานฝ่ายจัดซื้อ (โปรแกรม C) พร้อมเชื่อมโยงการทำงาน
-          </h2>
-          <p className="text-sm text-emerald-100/90 leading-relaxed font-normal">
-            หน้าต่างและการแสดงผลถูกจัดรูปแบบให้สอดคล้องกับโปรแกรม A (ซ่อมบำรุง) และโปรแกรม B (การตลาด) 
-            มีแถบเมนูด้านซ้ายสำหรับการเข้าถึงส่วนงานต่างๆ ได้อย่างสะดวกรวดเร็ว
-          </p>
-        </div>
       </div>
 
       {/* Functional Modules Section */}

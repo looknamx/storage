@@ -545,7 +545,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
                   }}
                   className="w-full px-2.5 py-1.5 text-xs bg-purple-50/70 border border-purple-200 text-purple-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium cursor-pointer"
                 >
-                  <option value="">⚡ เลือกรถบริษัทจากโปรแกรม A ({companyVehicles.length} คัน)...</option>
+                  <option value="">⚡ เลือกรถบริษัทจากฝ่ายซ่อมบำรุง ({companyVehicles.length} คัน)...</option>
                   {companyVehicles.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.code ? `[${v.code}] ` : ''}{v.licensePlate} {v.responsiblePerson ? `• ${v.responsiblePerson}` : ''} {v.currentMileage ? `(${v.currentMileage.toLocaleString()} กม.)` : ''}
@@ -572,7 +572,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
               ))}
             </datalist>
 
-            {/* Program A Linked Vehicle Badge */}
+            {/* Linked Vehicle Badge */}
             {matchedCompanyVehicle && (
               <div className="mt-2 p-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl text-xs space-y-1">
                 <div className="flex items-center justify-between">
@@ -585,7 +585,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
                     </span>
                   </div>
                   <span className="text-[11px] font-bold text-purple-700">
-                    ไมล์โปรแกรม A: {matchedCompanyVehicle.currentMileage ? matchedCompanyVehicle.currentMileage.toLocaleString() : 0} กม.
+                    ไมล์ล่าสุด: {matchedCompanyVehicle.currentMileage ? matchedCompanyVehicle.currentMileage.toLocaleString() : 0} กม.
                   </span>
                 </div>
                 <div className="text-[10px] text-purple-700 flex items-center justify-between">
@@ -857,7 +857,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
               </label>
               {!isSubcontractor && (
                 <span className="text-[10px] text-emerald-600 font-semibold">
-                  ✓ ซิงค์เข้าโปรแกรม A
+                  ✓ ซิงค์เลขไมล์รถบริษัท
                 </span>
               )}
             </div>

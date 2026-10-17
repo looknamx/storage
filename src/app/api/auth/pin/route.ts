@@ -67,10 +67,10 @@ export async function PUT(req: NextRequest) {
 
     const label =
       program === 'c'
-        ? 'PIN Code โปรแกรม C'
+        ? 'PIN Code ฝ่ายจัดซื้อ'
         : program === 'b'
-        ? 'PIN Code โปรแกรม B'
-        : 'PIN Code โปรแกรม A';
+        ? 'PIN Code ฝ่ายการตลาด'
+        : 'PIN Code ฝ่ายซ่อมบำรุง';
 
     await prisma.appSetting.upsert({
       where: { key: settingKey },

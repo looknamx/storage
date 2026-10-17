@@ -110,7 +110,7 @@ export default function MarketingSettingsPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (โปรแกรม B Snapshot) สำเร็จเรียบร้อยแล้ว');
+      setSuccessMessage('ดาวน์โหลดไฟล์สำรองข้อมูล (Marketing Snapshot) สำเร็จเรียบร้อยแล้ว');
     } catch (err: any) {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการดาวน์โหลดสำรองข้อมูล');
     } finally {
@@ -327,10 +327,10 @@ export default function MarketingSettingsPage() {
             </div>
             <div>
               <h2 className="text-base font-bold text-red-950 flex items-center gap-2">
-                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบแผนงานการตลาด (โปรแกรม B)
+                โซนอันตราย: ส่งมอบโปรเจกต์ & ล้างข้อมูลระบบแผนงานการตลาด
               </h2>
               <p className="text-xs text-red-700 mt-0.5">
-                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการล้างข้อมูลเที่ยววิ่งและลูกค้าเพื่อเริ่มบันทึกใหม่ (ข้อมูลรถและสต็อกอะไหล่ของฝ่ายซ่อมบำรุง โปรแกรม A จะไม่ได้รับผลกระทบ)
+                สำหรับผู้ดูแลระบบ: ใช้เมื่อต้องการล้างข้อมูลเที่ยววิ่งและลูกค้าเพื่อเริ่มบันทึกใหม่ (ข้อมูลรถและสต็อกอะไหล่ของฝ่ายซ่อมบำรุงจะไม่ได้รับผลกระทบ)
               </p>
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function MarketingSettingsPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
             >
               <Trash2 className="h-4 w-4" />
-              ลบข้อมูลเฉพาะโปรแกรม B เพื่อเริ่มใช้งานใหม่
+              ลบข้อมูลเฉพาะระบบการตลาดเพื่อเริ่มใช้งานใหม่
             </button>
           </div>
         </div>
@@ -367,17 +367,17 @@ export default function MarketingSettingsPage() {
               ระบบบังคับสำรองข้อมูลอัตโนมัติ (Forced Safety Backup)
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลของโปรแกรม B ทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
+              เมื่อกดลบข้อมูล ระบบจะทำการ Export ฐานข้อมูลของระบบการตลาดทุกตาราง และสั่งดาวน์โหลดไฟล์ <code>.json</code> ลงในเครื่องของท่านโดยอัตโนมัติทันทีก่อนการลบ เพื่อป้องกันข้อมูลสูญหาย 100%
             </p>
           </div>
 
           <div className="bg-white/80 p-3.5 rounded-xl border border-red-100 space-y-1.5">
             <div className="font-bold text-red-800 flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              แยกข้อมูลอิสระ ไม่กระทบโปรแกรม A
+              แยกข้อมูลอิสระ ไม่กระทบฝ่ายซ่อมบำรุง
             </div>
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              การล้างข้อมูลนี้จะลบเฉพาะเที่ยววิ่งและลูกค้าของฝ่ายการตลาดเท่านั้น <strong>ข้อมูลรถและสต็อกอะไหล่ในโปรแกรมบริหารแผนซ่อมบำรุง (โปรแกรม A) จะคงอยู่ครบถ้วน 100%</strong>
+              การล้างข้อมูลนี้จะลบเฉพาะเที่ยววิ่งและลูกค้าของฝ่ายการตลาดเท่านั้น <strong>ข้อมูลรถและสต็อกอะไหล่ในระบบแผนงานซ่อมบำรุงจะคงอยู่ครบถ้วน 100%</strong>
             </p>
           </div>
         </div>
@@ -392,7 +392,7 @@ export default function MarketingSettingsPage() {
         <div className="text-xs text-slate-600 space-y-1.5 leading-relaxed">
           <div>• <strong>ระบบฐานข้อมูลหลัก:</strong> เชื่อมต่อ Neon Cloud PostgreSQL (Serverless Cloud Database) พร้อมระบบสำรองอัตโนมัติ</div>
           <div>• <strong>ความปลอดภัยของข้อมูล:</strong> มีระบบสำรองข้อมูลอัตโนมัติทั้งแบบ Local Snapshot และ Cloud Backup</div>
-          <div>• <strong>การเชื่อมโยงข้ามระบบ:</strong> ข้อมูลรถและเลขไมล์จะซิงค์กับโปรแกรมบริหารงานซ่อมบำรุงโดยตรง</div>
+          <div>• <strong>การเชื่อมโยงข้ามระบบ:</strong> ข้อมูลรถและเลขไมล์จะซิงค์กับฝ่ายซ่อมบำรุงโดยตรง</div>
         </div>
       </div>
 
@@ -405,7 +405,7 @@ export default function MarketingSettingsPage() {
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">ยืนยันการล้างข้อมูลระบบแผนงานการตลาด (โปรแกรม B)</h3>
+                <h3 className="font-bold text-slate-900 text-base">ยืนยันการล้างข้อมูลระบบแผนงานการตลาด</h3>
                 <p className="text-xs text-red-600 font-medium">Project Handover - ส่งมอบระบบการตลาดและเริ่มคีย์ข้อมูลใหม่</p>
               </div>
             </div>
@@ -415,7 +415,7 @@ export default function MarketingSettingsPage() {
               <ul className="list-disc list-inside space-y-1 text-slate-700 text-[11px]">
                 <li>ข้อมูลงานขนส่ง เที่ยววิ่ง และข้อมูลลูกค้าการตลาดทั้งหมดจะถูกลบ</li>
                 <li className="font-semibold text-emerald-700">
-                  ✓ ข้อมูลทะเบียนรถ สต็อกอะไหล่ และใบสั่งซ่อมในโปรแกรม A จะคงอยู่ครบถ้วน 100% ไม่ถูกลบ
+                  ✓ ข้อมูลทะเบียนรถ สต็อกอะไหล่ และใบสั่งซ่อมในระบบซ่อมบำรุงจะคงอยู่ครบถ้วน 100% ไม่ถูกลบ
                 </li>
                 <li>
                   ระบบจะ<strong>ทำการดาวน์โหลดไฟล์สำรองข้อมูล (Safety Snapshot JSON) ลงในเครื่องของท่านโดยอัตโนมัติ</strong>ก่อนเริ่มการลบ

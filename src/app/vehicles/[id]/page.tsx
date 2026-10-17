@@ -597,7 +597,7 @@ export default function VehicleDetailPage() {
                       }`}
                     >
                       {odo.source === 'transport_job'
-                        ? '🚛 งานขนส่ง (โปรแกรม B)'
+                        ? '🚛 งานขนส่ง (ฝ่ายการตลาด)'
                         : odo.source === 'repair_order'
                         ? '🔧 ใบสั่งซ่อม'
                         : odo.source === 'manual'

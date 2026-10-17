@@ -84,7 +84,7 @@ export async function findOrCreateCompanyVehicle({
         currentMileage: odometer || 0,
         mileageDate: date || new Date(),
         status: 'active',
-        notes: 'ลงทะเบียนอัตโนมัติจากระบบแผนงานขนส่ง (โปรแกรม B)',
+        notes: 'ลงทะเบียนอัตโนมัติจากระบบแผนงานขนส่ง (ฝ่ายการตลาด)',
       },
     });
 

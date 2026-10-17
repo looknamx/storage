@@ -295,7 +295,7 @@ export default function ProcurementSidebar({
           </button>
 
           {!isCollapsed && (
-            <p className="text-center text-[11px] text-slate-500">v1.0.0 (โปรแกรม C)</p>
+            <p className="text-center text-[11px] text-slate-500">v1.0.0</p>
           )}
         </div>
       </aside>

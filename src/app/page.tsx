@@ -159,7 +159,7 @@ function PortalContent() {
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-300">
                 <KeyRound className="w-3.5 h-3.5 text-blue-400" />
-                <span>โปรแกรม A</span>
+                <span>ฝ่ายซ่อมบำรุง</span>
               </span>
             </div>
 
@@ -195,7 +195,7 @@ function PortalContent() {
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 border border-purple-500/30 text-purple-300">
                 <KeyRound className="w-3.5 h-3.5 text-purple-400" />
-                <span>โปรแกรม B</span>
+                <span>ฝ่ายการตลาด</span>
               </span>
             </div>
 
@@ -231,7 +231,7 @@ function PortalContent() {
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
                 <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-                <span>โปรแกรม C</span>
+                <span>ฝ่ายจัดซื้อ</span>
               </span>
             </div>
 
@@ -312,7 +312,7 @@ function PortalContent() {
                   : 'เข้าสู่ระบบแผนงานฝ่ายจัดซื้อ'}
               </h3>
               <p className="text-xs text-slate-400">
-                {activeProgram === 'a' ? 'โปรแกรม A' : activeProgram === 'b' ? 'โปรแกรม B' : 'โปรแกรม C'} • กรุณาใส่รหัส PIN 4 หลัก
+                กรุณาใส่รหัส PIN 4 หลักเพื่อเข้าใช้งาน
               </p>
             </div>
 
