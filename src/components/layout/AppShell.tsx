@@ -11,6 +11,7 @@ import { isProgramAuthenticated } from '@/lib/auth';
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMarketing = pathname.startsWith('/marketing');
+  const isProcurement = pathname.startsWith('/procurement');
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile drawer
   const [isCollapsed, setIsCollapsed] = useState(false); // Desktop collapsed state
 
@@ -51,7 +52,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Authentication check for Program A vs Program B (Daily PIN session)
+  // Authentication check for Program A vs Program B vs Program C (Daily PIN session)
   useEffect(() => {
     if (pathname === '/') {
       setIsAuthenticated(true);
@@ -59,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     const checkDailyAuth = () => {
-      const targetProgram = isMarketing ? 'b' : 'a';
+      const targetProgram = isProcurement ? 'c' : isMarketing ? 'b' : 'a';
       if (!isProgramAuthenticated(targetProgram)) {
         setIsAuthenticated(false);
         window.location.href = `/?login=${targetProgram}`;
@@ -85,7 +86,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [pathname, isMarketing]);
+  }, [pathname, isMarketing, isProcurement]);
 
   // When visiting portal landing page (root path), render clean standalone window without sidebar/topbar
   if (pathname === '/') {
@@ -101,10 +102,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-slate-400 font-medium">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</span>
         </div>
       </div>
+    );
+  }
+
+  if (isProcurement) {
+    return (
+      <main className="min-h-screen w-full bg-slate-900">
+        {children}
+      </main>
     );
   }
 

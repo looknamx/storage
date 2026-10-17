@@ -12,7 +12,7 @@ const notoSansThai = Noto_Sans_Thai({
 
 export const metadata: Metadata = {
   title: 'ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)',
-  description: 'ศูนย์กลางระบบสารสนเทศองค์กร - ระบบบริหารจัดการแผนซ่อมบำรุง และระบบแผนงานการตลาด',
+  description: 'ศูนย์กลางระบบสารสนเทศองค์กร - ระบบแผนงานซ่อมบำรุง, ระบบแผนงานการตลาด และระบบแผนงานฝ่ายจัดซื้อ',
 };
 
 export default function RootLayout({

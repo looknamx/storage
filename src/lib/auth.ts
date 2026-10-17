@@ -11,9 +11,9 @@ export function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function isProgramAuthenticated(program: 'a' | 'b'): boolean {
+export function isProgramAuthenticated(program: 'a' | 'b' | 'c'): boolean {
   if (typeof window === 'undefined') return false;
-  const storageKey = program === 'a' ? 'auth_program_a' : 'auth_program_b';
+  const storageKey = `auth_program_${program}`;
   const today = getTodayDateString();
 
   try {
@@ -36,9 +36,9 @@ export function isProgramAuthenticated(program: 'a' | 'b'): boolean {
   return false;
 }
 
-export function setProgramAuthenticated(program: 'a' | 'b'): void {
+export function setProgramAuthenticated(program: 'a' | 'b' | 'c'): void {
   if (typeof window === 'undefined') return;
-  const storageKey = program === 'a' ? 'auth_program_a' : 'auth_program_b';
+  const storageKey = `auth_program_${program}`;
   const today = getTodayDateString();
 
   try {
@@ -49,9 +49,9 @@ export function setProgramAuthenticated(program: 'a' | 'b'): void {
   }
 }
 
-export function clearProgramAuth(program: 'a' | 'b'): void {
+export function clearProgramAuth(program: 'a' | 'b' | 'c'): void {
   if (typeof window === 'undefined') return;
-  const storageKey = program === 'a' ? 'auth_program_a' : 'auth_program_b';
+  const storageKey = `auth_program_${program}`;
   try {
     localStorage.removeItem(storageKey);
     sessionStorage.removeItem(storageKey);

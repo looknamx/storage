@@ -10,7 +10,8 @@ import {
   X,
   Delete,
   KeyRound,
-  Truck
+  Truck,
+  ShoppingBag
 } from 'lucide-react';
 import { isProgramAuthenticated, setProgramAuthenticated } from '@/lib/auth';
 
@@ -19,7 +20,7 @@ function PortalContent() {
   const searchParams = useSearchParams();
 
   // Login PIN Modal state
-  const [activeProgram, setActiveProgram] = useState<'a' | 'b' | null>(null);
+  const [activeProgram, setActiveProgram] = useState<'a' | 'b' | 'c' | null>(null);
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   const [validating, setValidating] = useState<boolean>(false);
@@ -33,6 +34,8 @@ function PortalContent() {
       setActiveProgram('a');
     } else if (loginTarget === 'b') {
       setActiveProgram('b');
+    } else if (loginTarget === 'c') {
+      setActiveProgram('c');
     }
   }, [searchParams]);
 
@@ -42,8 +45,8 @@ function PortalContent() {
   }, []);
 
   // Handle program click: check existing session or prompt PIN
-  const handleSelectProgram = (program: 'a' | 'b') => {
-    const destination = program === 'a' ? '/dashboard' : '/marketing';
+  const handleSelectProgram = (program: 'a' | 'b' | 'c') => {
+    const destination = program === 'a' ? '/dashboard' : program === 'b' ? '/marketing' : '/procurement';
 
     if (isProgramAuthenticated(program)) {
       router.push(destination);
@@ -87,7 +90,7 @@ function PortalContent() {
       if (data.valid) {
         setSuccess(true);
         setProgramAuthenticated(activeProgram);
-        const destination = activeProgram === 'a' ? '/dashboard' : '/marketing';
+        const destination = activeProgram === 'a' ? '/dashboard' : activeProgram === 'b' ? '/marketing' : '/procurement';
 
         setTimeout(() => {
           router.push(destination);
@@ -135,15 +138,15 @@ function PortalContent() {
       <div className="absolute bottom-10 right-1/4 w-[400px] h-[280px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Main Container / Window */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center">
         {/* Title Page */}
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-8 sm:mb-10 text-center">
           ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)
         </h1>
 
-        {/* 2 Main Program Buttons / Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
-          {/* Program A: ระบบบริหารจัดการแผนซ่อมบำรุง */}
+        {/* 3 Main Program Buttons / Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+          {/* Program A: ระบบแผนงานซ่อมบำรุง */}
           <button
             type="button"
             onClick={() => handleSelectProgram('a')}
@@ -163,7 +166,7 @@ function PortalContent() {
             {/* Content */}
             <div className="space-y-2 mb-8">
               <h2 className="text-xl sm:text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
-                ระบบบริหารจัดการแผนซ่อมบำรุง
+                ระบบแผนงานซ่อมบำรุง
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
                 ระบบบริหารจัดการรถบริษัท คลังอะไหล่ ใบสั่งซ่อม และแผนการตรวจเช็กบำรุงรักษาเชิงป้องกัน
@@ -214,6 +217,42 @@ function PortalContent() {
               </div>
             </div>
           </button>
+
+          {/* Program C: ระบบแผนงานฝ่ายจัดซื้อ */}
+          <button
+            type="button"
+            onClick={() => handleSelectProgram('c')}
+            className="group relative flex flex-col justify-between p-7 sm:p-8 rounded-2xl bg-slate-800/70 border-2 border-slate-700/80 hover:border-emerald-500/80 hover:bg-slate-800/90 shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10 backdrop-blur-xl transition-all duration-300 transform hover:-translate-y-1 text-left cursor-pointer"
+          >
+            {/* Top Badge */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform duration-300">
+                <ShoppingBag className="w-7 h-7" />
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+                <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                <span>โปรแกรม C</span>
+              </span>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-2 mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-white group-hover:text-emerald-300 transition-colors">
+                ระบบแผนงานฝ่ายจัดซื้อ
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
+                บริหารจัดการงานจัดซื้อจัดจ้าง ติดตามใบขอซื้อ/ใบสั่งซื้อ (PR/PO) และบริหารจัดการผู้จำหน่าย
+              </p>
+            </div>
+
+            {/* Action Button */}
+            <div className="pt-4 border-t border-slate-700/60 flex items-center justify-between text-emerald-400 group-hover:text-emerald-300 font-semibold text-sm w-full">
+              <span>เข้าสู่ระบบ (PIN)</span>
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -252,18 +291,28 @@ function PortalContent() {
                 className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg ${
                   activeProgram === 'a'
                     ? 'bg-blue-600 text-white shadow-blue-500/30'
-                    : 'bg-purple-600 text-white shadow-purple-500/30'
+                    : activeProgram === 'b'
+                    ? 'bg-purple-600 text-white shadow-purple-500/30'
+                    : 'bg-emerald-600 text-white shadow-emerald-500/30'
                 }`}
               >
-                {activeProgram === 'a' ? <Truck className="w-7 h-7" /> : <TrendingUp className="w-7 h-7" />}
+                {activeProgram === 'a' ? (
+                  <Truck className="w-7 h-7" />
+                ) : activeProgram === 'b' ? (
+                  <TrendingUp className="w-7 h-7" />
+                ) : (
+                  <ShoppingBag className="w-7 h-7" />
+                )}
               </div>
               <h3 className="text-lg font-bold text-white pt-1">
                 {activeProgram === 'a'
-                  ? 'เข้าสู่ระบบบริหารจัดการแผนซ่อมบำรุง'
-                  : 'เข้าสู่ระบบแผนงานการตลาด'}
+                  ? 'เข้าสู่ระบบแผนงานซ่อมบำรุง'
+                  : activeProgram === 'b'
+                  ? 'เข้าสู่ระบบแผนงานการตลาด'
+                  : 'เข้าสู่ระบบแผนงานฝ่ายจัดซื้อ'}
               </h3>
               <p className="text-xs text-slate-400">
-                {activeProgram === 'a' ? 'โปรแกรม A' : 'โปรแกรม B'} • กรุณาใส่รหัส PIN 4 หลัก
+                {activeProgram === 'a' ? 'โปรแกรม A' : activeProgram === 'b' ? 'โปรแกรม B' : 'โปรแกรม C'} • กรุณาใส่รหัส PIN 4 หลัก
               </p>
             </div>
 
@@ -280,7 +329,9 @@ function PortalContent() {
                         : isFilled
                         ? activeProgram === 'a'
                           ? 'bg-blue-400 scale-110 shadow-lg shadow-blue-400/50'
-                          : 'bg-purple-400 scale-110 shadow-lg shadow-purple-400/50'
+                          : activeProgram === 'b'
+                          ? 'bg-purple-400 scale-110 shadow-lg shadow-purple-400/50'
+                          : 'bg-emerald-400 scale-110 shadow-lg shadow-emerald-400/50'
                         : 'bg-slate-700 border border-slate-600'
                     }`}
                   />

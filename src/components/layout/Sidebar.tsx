@@ -336,7 +336,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => {
-              if (confirm('คุณต้องการออกจากระบบบริหารจัดการแผนซ่อมบำรุง ใช่หรือไม่?')) {
+              if (confirm('คุณต้องการออกจากระบบแผนงานซ่อมบำรุง ใช่หรือไม่?')) {
                 clearProgramAuth('a');
                 window.location.href = '/';
               }
