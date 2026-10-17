@@ -191,11 +191,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invoice number is required' }, { status: 400 });
     }
 
+    const trimmedInvoice = String(invoiceNo).trim();
+
     const updated = await prisma.transportJob.updateMany({
-      where: { invoiceNo },
+      where: {
+        OR: [
+          { invoiceNo: trimmedInvoice },
+          { invoiceNo: { equals: trimmedInvoice, mode: 'insensitive' } },
+        ],
+      },
       data: {
         isPaid: Boolean(isPaid),
-        paymentDate: isPaid && paymentDate ? new Date(paymentDate) : (isPaid ? new Date() : null),
+        paymentDate: isPaid && paymentDate ? new Date(paymentDate) : isPaid ? new Date() : null,
       },
     });
 

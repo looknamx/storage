@@ -15,6 +15,9 @@ import {
   ArrowUp,
   ArrowDown,
   AlertCircle,
+  Pencil,
+  X,
+  Save,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -36,6 +39,12 @@ export default function MarketingBillingPage() {
   // Sorting
   const [sortBy, setSortBy] = useState<string>('billingDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Edit Status Modal State
+  const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
+  const [modalIsPaid, setModalIsPaid] = useState<boolean>(false);
+  const [modalPaymentDate, setModalPaymentDate] = useState<string>('');
+  const [isSavingStatus, setIsSavingStatus] = useState<boolean>(false);
 
   const fetchInvoices = async () => {
     try {
@@ -94,7 +103,24 @@ export default function MarketingBillingPage() {
     fetchInvoices();
   };
 
-  const handleTogglePaid = async (invoiceNo: string, currentPaid: boolean) => {
+  const updateInvoiceStatus = async (
+    invoiceNo: string,
+    newPaid: boolean,
+    paymentDate?: string | null
+  ) => {
+    // Optimistic UI update
+    setInvoices((prev) =>
+      prev.map((item) =>
+        item.invoiceNo === invoiceNo
+          ? {
+              ...item,
+              isPaid: newPaid,
+              paymentDate: newPaid ? (paymentDate || new Date().toISOString()) : null,
+            }
+          : item
+      )
+    );
+
     try {
       setUpdatingId(invoiceNo);
       const res = await fetch('/api/marketing/billing', {
@@ -102,18 +128,46 @@ export default function MarketingBillingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           invoiceNo,
-          isPaid: !currentPaid,
-          paymentDate: !currentPaid ? new Date().toISOString() : null,
+          isPaid: newPaid,
+          paymentDate: newPaid ? (paymentDate || new Date().toISOString()) : null,
         }),
       });
 
-      if (res.ok) {
-        fetchInvoices();
+      if (!res.ok) {
+        throw new Error('บันทึกไม่สำเร็จ');
       }
-    } catch (e) {
-      alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+      fetchInvoices();
+    } catch (e: any) {
+      alert(`เกิดข้อผิดพลาดในการอัปเดตสถานะ: ${e.message}`);
+      fetchInvoices();
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const openEditModal = (inv: any) => {
+    setEditingInvoice(inv);
+    setModalIsPaid(Boolean(inv.isPaid));
+    setModalPaymentDate(
+      inv.paymentDate
+        ? new Date(inv.paymentDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0]
+    );
+  };
+
+  const handleSaveModalStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvoice) return;
+    try {
+      setIsSavingStatus(true);
+      await updateInvoiceStatus(
+        editingInvoice.invoiceNo,
+        modalIsPaid,
+        modalIsPaid ? modalPaymentDate : null
+      );
+      setEditingInvoice(null);
+    } finally {
+      setIsSavingStatus(false);
     }
   };
 
@@ -533,28 +587,41 @@ export default function MarketingBillingPage() {
                       ฿{formatCurrency(inv.totalNetRevenue)}
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <button
-                        type="button"
-                        disabled={updatingId === inv.invoiceNo}
-                        onClick={() => handleTogglePaid(inv.invoiceNo, inv.isPaid)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all active:scale-95 ${
-                          inv.isPaid
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                        }`}
-                      >
-                        {inv.isPaid ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>รับชำระแล้ว</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-3.5 h-3.5 text-amber-600" />
-                            <span>รอชำระเงิน</span>
-                          </>
-                        )}
-                      </button>
+                      <div className="inline-flex items-center justify-center gap-1.5">
+                        {/* Quick Status Dropdown Selector */}
+                        <select
+                          disabled={updatingId === inv.invoiceNo}
+                          value={inv.isPaid ? 'paid' : 'unpaid'}
+                          onChange={(e) =>
+                            updateInvoiceStatus(inv.invoiceNo, e.target.value === 'paid')
+                          }
+                          className={`text-[11px] font-semibold rounded-lg px-2 py-1 border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-xs ${
+                            inv.isPaid
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                              : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                          }`}
+                        >
+                          <option value="unpaid">⏳ รอชำระเงิน</option>
+                          <option value="paid">✅ รับชำระแล้ว</option>
+                        </select>
+
+                        {/* Edit Status & Date Modal Trigger Button */}
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(inv)}
+                          title="ปรับแก้สถานะและระบุวันที่รับชำระ"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors border border-transparent hover:border-purple-200"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Display payment date if available */}
+                      {inv.isPaid && inv.paymentDate && (
+                        <div className="text-[10px] text-gray-400 mt-1 font-medium">
+                          ชำระ: {formatDate(inv.paymentDate)}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <Link
@@ -591,6 +658,135 @@ export default function MarketingBillingPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Status & Payment Date Modal */}
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-purple-600" />
+                <span>ปรับแก้สถานะการรับชำระเงิน</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingInvoice(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Invoice Info Card */}
+            <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">เลขที่ใบวางบิล:</span>
+                <span className="font-mono font-bold text-purple-800 text-sm">
+                  {editingInvoice.invoiceNo}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">ลูกค้า:</span>
+                <span className="font-semibold text-gray-800 line-clamp-1 max-w-[220px]">
+                  {editingInvoice.customerName}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">จำนวนเที่ยววิ่ง:</span>
+                <span className="font-semibold text-gray-800">
+                  {editingInvoice.jobsCount} เที่ยว
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-purple-200/60 pt-2 mt-1">
+                <span className="text-gray-700 font-bold">ยอดรับเงินสุทธิ (Net AR):</span>
+                <span className="font-bold text-emerald-600 text-base">
+                  ฿{formatCurrency(editingInvoice.totalNetRevenue)}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveModalStatus} className="space-y-4 text-xs">
+              {/* Status Radio / Buttons */}
+              <div>
+                <label className="block font-semibold text-gray-700 mb-2">
+                  สถานะการรับชำระเงิน *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModalIsPaid(false)}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                      !modalIsPaid
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 font-bold ring-2 ring-amber-500/20'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Clock className="w-5 h-5 text-amber-600" />
+                    <span>รอชำระเงิน</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModalIsPaid(true)}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                      modalIsPaid
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-2 ring-emerald-500/20'
+                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span>รับชำระแล้ว</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Payment Date input if Paid */}
+              {modalIsPaid && (
+                <div className="space-y-1.5 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-gray-700">
+                      วันที่รับชำระเงิน *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setModalPaymentDate(new Date().toISOString().split('T')[0])}
+                      className="text-[11px] text-purple-600 hover:underline font-semibold"
+                    >
+                      เลือกวันนี้
+                    </button>
+                  </div>
+                  <input
+                    type="date"
+                    required={modalIsPaid}
+                    value={modalPaymentDate}
+                    onChange={(e) => setModalPaymentDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-purple-500 bg-white text-gray-800"
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingInvoice(null)}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingStatus}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingStatus ? 'กำลังบันทึก...' : 'บันทึกสถานะ'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
