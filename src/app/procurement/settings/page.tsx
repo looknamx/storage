@@ -13,8 +13,6 @@ import {
   AlertTriangle,
   Clock,
   Download,
-  KeyRound,
-  Lock,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -32,14 +30,6 @@ export default function ProcurementSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-
-  // PIN Change State for Procurement
-  const [currentPin, setCurrentPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmNewPin, setConfirmNewPin] = useState('');
-  const [pinSaving, setPinSaving] = useState(false);
-  const [pinSuccess, setPinSuccess] = useState('');
-  const [pinError, setPinError] = useState('');
 
   // Reset System & Mandatory Backup State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -170,50 +160,6 @@ export default function ProcurementSettingsPage() {
     }
   };
 
-  // Change PIN Handler
-  const handleChangePin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPinError('');
-    setPinSuccess('');
-
-    if (newPin.length < 4) {
-      setPinError('รหัส PIN ใหม่ต้องมีอย่างน้อย 4 หลัก');
-      return;
-    }
-
-    if (newPin !== confirmNewPin) {
-      setPinError('รหัส PIN ใหม่และการยืนยันไม่ตรงกัน');
-      return;
-    }
-
-    try {
-      setPinSaving(true);
-      const res = await fetch('/api/auth/pin', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          program: 'c',
-          currentPin,
-          newPin,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'เปลี่ยนรหัส PIN ไม่สำเร็จ');
-      }
-
-      setPinSuccess('เปลี่ยนรหัส PIN ฝ่ายจัดซื้อเรียบร้อยแล้ว');
-      setCurrentPin('');
-      setNewPin('');
-      setConfirmNewPin('');
-    } catch (err: any) {
-      setPinError(err.message || 'เกิดข้อผิดพลาดในการเปลี่ยนรหัส PIN');
-    } finally {
-      setPinSaving(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -228,7 +174,7 @@ export default function ProcurementSettingsPage() {
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            จัดการข้อมูลทั่วไป กำหนดค่าความปลอดภัย PIN และนโยบายสำรองข้อมูล
+            จัดการข้อมูลทั่วไป นโยบายสำรองข้อมูล และการดูแลระบบ
           </p>
         </div>
       </div>
@@ -250,7 +196,77 @@ export default function ProcurementSettingsPage() {
 
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
-        {/* Section 1: General Company Info */}
+
+        {/* Section 1: Auto Backup Settings (Matches Program A & Screenshot) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Database className="h-4 w-4 text-emerald-600" />
+              การสำรองข้อมูลอัตโนมัติ (Auto Backup)
+            </h2>
+            <div className="flex items-center gap-2">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.auto_backup_enabled === 'true'}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      auto_backup_enabled: e.target.checked ? 'true' : 'false',
+                    })
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span className="ml-2 text-xs font-semibold text-slate-700">
+                  {settings.auto_backup_enabled === 'true' ? 'เปิดใช้งาน' : 'ปิดการทำงาน'}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                รอบระยะเวลาการสำรองข้อมูลอัตโนมัติ
+              </label>
+              <select
+                disabled={settings.auto_backup_enabled !== 'true'}
+                value={settings.auto_backup_interval_days || '7'}
+                onChange={(e) =>
+                  setSettings({ ...settings, auto_backup_interval_days: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-emerald-500 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                <option value="3">ทุกๆ 3 วัน</option>
+                <option value="5">ทุกๆ 5 วัน</option>
+                <option value="7">ทุกๆ 7 วัน (แนะนำ)</option>
+              </select>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                ระบบจะตรวจสอบและสร้างไฟล์ Snapshot อัตโนมัติเมื่อมีการเปิดใช้งานโปรแกรม
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                สำรองข้อมูลอัตโนมัติล่าสุด
+              </label>
+              <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 flex items-center justify-between">
+                <span>
+                  {settings.last_auto_backup_date
+                    ? formatDate(settings.last_auto_backup_date)
+                    : 'ยังไม่มีประวัติการสำรองอัตโนมัติ'}
+                </span>
+                <Clock className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                ไฟล์จะถูกเก็บไว้ที่โฟลเดอร์ <code className="bg-slate-100 px-1 py-0.5 rounded">./backups/</code>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: General Company Info */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <Building className="h-5 w-5 text-emerald-600" />
@@ -302,134 +318,11 @@ export default function ProcurementSettingsPage() {
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่าทั่วไป'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่าระบบ'}
             </button>
-          </div>
-        </div>
-
-        {/* Section 2: Auto Backup Policy */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Clock className="h-5 w-5 text-emerald-600" />
-            <h2 className="text-base font-bold text-slate-800">นโยบายสำรองข้อมูลอัตโนมัติ (Auto Backup Policy)</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                เปิดใช้งานการสำรองข้อมูลอัตโนมัติ
-              </label>
-              <select
-                value={settings.auto_backup_enabled || 'false'}
-                onChange={(e) => setSettings({ ...settings, auto_backup_enabled: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              >
-                <option value="true">เปิดใช้งาน (แนะนำ)</option>
-                <option value="false">ปิดการใช้งาน</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                ความถี่ในการสำรองข้อมูลอัตโนมัติ
-              </label>
-              <select
-                value={settings.auto_backup_interval_days || '7'}
-                onChange={(e) => setSettings({ ...settings, auto_backup_interval_days: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              >
-                <option value="1">ทุกวัน (Daily)</option>
-                <option value="7">ทุก 7 วัน (Weekly)</option>
-                <option value="15">ทุก 15 วัน (Bi-weekly)</option>
-                <option value="30">ทุก 30 วัน (Monthly)</option>
-              </select>
-            </div>
           </div>
         </div>
       </form>
-
-      {/* Section 3: Security & Change PIN */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <KeyRound className="h-5 w-5 text-emerald-600" />
-          <div>
-            <h2 className="text-base font-bold text-slate-800">ความปลอดภัยและรหัส PIN (Security & PIN)</h2>
-            <p className="text-xs text-slate-500">กำหนดรหัส PIN 4 หลักสำหรับเข้าใช้งานระบบฝ่ายจัดซื้อ</p>
-          </div>
-        </div>
-
-        {pinSuccess && (
-          <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-xl font-medium">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-            <span>{pinSuccess}</span>
-          </div>
-        )}
-
-        {pinError && (
-          <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 p-3 rounded-xl font-medium">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-            <span>{pinError}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleChangePin} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              รหัส PIN ปัจจุบัน
-            </label>
-            <input
-              type="password"
-              maxLength={4}
-              required
-              value={currentPin}
-              onChange={(e) => setCurrentPin(e.target.value)}
-              placeholder="•••• (เริ่มต้น 1234)"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-widest"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              รหัส PIN ใหม่ (4 หลัก)
-            </label>
-            <input
-              type="password"
-              maxLength={4}
-              required
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value)}
-              placeholder="••••"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-widest"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              ยืนยันรหัส PIN ใหม่
-            </label>
-            <input
-              type="password"
-              maxLength={4}
-              required
-              value={confirmNewPin}
-              onChange={(e) => setConfirmNewPin(e.target.value)}
-              placeholder="••••"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono tracking-widest"
-            />
-          </div>
-
-          <div className="sm:col-span-3 flex justify-end pt-1">
-            <button
-              type="submit"
-              disabled={pinSaving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50"
-            >
-              <Lock className="h-4 w-4 text-emerald-400" />
-              {pinSaving ? 'กำลังเปลี่ยนรหัส...' : 'เปลี่ยนรหัส PIN ฝ่ายจัดซื้อ'}
-            </button>
-          </div>
-        </form>
-      </div>
 
       {/* Danger Zone: Handover & Reset Database */}
       <div className="bg-red-50/70 border-2 border-red-200 rounded-2xl p-6 shadow-sm space-y-4">
