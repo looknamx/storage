@@ -20,6 +20,7 @@ import {
   LogOut,
   Settings,
   BarChart3,
+  Database,
 } from 'lucide-react';
 import { clearProgramAuth } from '@/lib/auth';
 
@@ -66,6 +67,7 @@ const menuGroups: MenuGroup[] = [
   {
     id: 'system',
     items: [
+      { label: 'สำรองและกู้คืนข้อมูล', icon: Database, path: '/marketing/backup' },
       { label: 'ตั้งค่าระบบ', icon: Settings, path: '/marketing/settings' },
     ],
   },

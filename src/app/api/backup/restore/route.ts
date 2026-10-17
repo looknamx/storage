@@ -38,27 +38,40 @@ async function restoreFromJsonSnapshot(snapshot: any) {
   const maintenanceRecords: any[] = rawData.maintenanceRecords || []
   const notifications: any[] = rawData.notifications || []
   const appSettings: any[] = rawData.appSettings || rawData.settings || []
+  const transportJobs: any[] = rawData.transportJobs || []
+  const marketingCustomers: any[] = rawData.marketingCustomers || []
 
-  // 1. Purge existing data in strict relational dependency order
-  await prisma.$transaction([
-    prisma.partReturn.deleteMany(),
-    prisma.partIssueItem.deleteMany(),
-    prisma.stockReceiptItem.deleteMany(),
-    prisma.inventoryTransaction.deleteMany(),
-    prisma.repairOrderItem.deleteMany(),
-    prisma.maintenanceRecord.deleteMany(),
-    prisma.odometerReading.deleteMany(),
-    prisma.partIssue.deleteMany(),
-    prisma.stockReceipt.deleteMany(),
-    prisma.repairOrder.deleteMany(),
-    prisma.maintenancePlan.deleteMany(),
-    prisma.part.deleteMany(),
-    prisma.vehicle.deleteMany(),
-    prisma.supplier.deleteMany(),
-    prisma.partCategory.deleteMany(),
-    prisma.vehicleType.deleteMany(),
-    prisma.notification.deleteMany(),
-  ])
+  const hasMaintenanceData =
+    parts.length > 0 ||
+    vehicles.length > 0 ||
+    categories.length > 0 ||
+    repairOrders.length > 0 ||
+    maintenancePlans.length > 0
+
+  const hasMarketingData = transportJobs.length > 0 || marketingCustomers.length > 0
+
+  // 1. Purge existing maintenance data ONLY if snapshot contains maintenance data
+  if (hasMaintenanceData) {
+    await prisma.$transaction([
+      prisma.partReturn.deleteMany(),
+      prisma.partIssueItem.deleteMany(),
+      prisma.stockReceiptItem.deleteMany(),
+      prisma.inventoryTransaction.deleteMany(),
+      prisma.repairOrderItem.deleteMany(),
+      prisma.maintenanceRecord.deleteMany(),
+      prisma.odometerReading.deleteMany(),
+      prisma.partIssue.deleteMany(),
+      prisma.stockReceipt.deleteMany(),
+      prisma.repairOrder.deleteMany(),
+      prisma.maintenancePlan.deleteMany(),
+      prisma.part.deleteMany(),
+      prisma.vehicle.deleteMany(),
+      prisma.supplier.deleteMany(),
+      prisma.partCategory.deleteMany(),
+      prisma.vehicleType.deleteMany(),
+      prisma.notification.deleteMany(),
+    ])
+  }
 
   // 2. Insert Master Data: Categories
   if (categories.length > 0) {
@@ -370,14 +383,54 @@ async function restoreFromJsonSnapshot(snapshot: any) {
     await prisma.notification.createMany({ data: formattedNotifs, skipDuplicates: true })
   }
 
-  // 14. Upsert Settings
-  if (appSettings.length > 0) {
-    for (const s of appSettings) {
-      await prisma.appSetting.upsert({
-        where: { key: s.key },
-        update: { value: s.value, label: s.label || null, group: s.group || null },
-        create: { key: s.key, value: s.value, label: s.label || null, group: s.group || null },
+  // 15. Insert Marketing Customers & Transport Jobs (if present in snapshot)
+  if (hasMarketingData) {
+    await prisma.$transaction([
+      prisma.transportJob.deleteMany(),
+      prisma.marketingCustomer.deleteMany(),
+    ])
+
+    if (marketingCustomers.length > 0) {
+      const formattedCustomers = marketingCustomers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        code: c.code || null,
+        taxId: c.taxId || null,
+        contactPerson: c.contactPerson || null,
+        phone: c.phone || null,
+        email: c.email || null,
+        address: c.address || null,
+        billingNote: c.billingNote || null,
+        creditTermDays: Number(c.creditTermDays) || 30,
+        isActive: c.isActive ?? true,
+        notes: c.notes || null,
+        createdAt: parseRequiredDate(c.createdAt),
+        updatedAt: parseRequiredDate(c.updatedAt),
+      }))
+      await prisma.marketingCustomer.createMany({
+        data: formattedCustomers,
+        skipDuplicates: true,
       })
+    }
+
+    if (transportJobs.length > 0) {
+      const formattedJobs = transportJobs.map((j) => ({
+        ...j,
+        loadingDate: parseDate(j.loadingDate),
+        deliveryDate: parseDate(j.deliveryDate),
+        billingDate: parseDate(j.billingDate),
+        paymentDate: parseDate(j.paymentDate),
+        subcontractorPaidDate: parseDate(j.subcontractorPaidDate),
+        createdAt: parseRequiredDate(j.createdAt),
+        updatedAt: parseRequiredDate(j.updatedAt),
+      }))
+
+      for (let i = 0; i < formattedJobs.length; i += 100) {
+        await prisma.transportJob.createMany({
+          data: formattedJobs.slice(i, i + 100),
+          skipDuplicates: true,
+        })
+      }
     }
   }
 
@@ -387,6 +440,8 @@ async function restoreFromJsonSnapshot(snapshot: any) {
     suppliersCount: suppliers.length,
     categoriesCount: categories.length,
     ordersCount: repairOrders.length,
+    transportJobsCount: transportJobs.length,
+    marketingCustomersCount: marketingCustomers.length,
   }
 }
 

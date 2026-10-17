@@ -75,6 +75,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const isPostgres = process.env.DATABASE_URL?.startsWith('postgres')
+    const scope = body.scope || 'all' // 'marketing', 'procurement', 'maintenance', 'all'
 
     const now = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       now.getHours()
     )}${pad(now.getMinutes())}${pad(now.getSeconds())}`
 
-    // Fetch all tables for complete snapshot
+    // Fetch tables based on scope or all
     const [
       parts,
       partCategories,
@@ -103,79 +104,110 @@ export async function POST(request: Request) {
       notifications,
       auditLogs,
       appSettings,
+      transportJobs,
+      marketingCustomers,
     ] = await Promise.all([
-      prisma.part.findMany(),
-      prisma.partCategory.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.part.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.partCategory.findMany(),
       prisma.supplier.findMany(),
-      prisma.vehicle.findMany(),
-      prisma.vehicleType.findMany(),
-      prisma.odometerReading.findMany(),
-      prisma.stockReceipt.findMany(),
-      prisma.stockReceiptItem.findMany(),
-      prisma.partIssue.findMany(),
-      prisma.partIssueItem.findMany(),
-      prisma.partReturn.findMany(),
-      prisma.inventoryTransaction.findMany(),
-      prisma.repairOrder.findMany(),
-      prisma.repairOrderItem.findMany(),
-      prisma.maintenancePlan.findMany(),
-      prisma.maintenanceRecord.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.vehicle.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.vehicleType.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.odometerReading.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.stockReceipt.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.stockReceiptItem.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.partIssue.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.partIssueItem.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.partReturn.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.inventoryTransaction.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.repairOrder.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.repairOrderItem.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.maintenancePlan.findMany(),
+      scope === 'marketing' ? Promise.resolve([]) : prisma.maintenanceRecord.findMany(),
       prisma.notification.findMany(),
       prisma.auditLog.findMany(),
       prisma.appSetting.findMany(),
+      scope === 'maintenance' || scope === 'procurement' ? Promise.resolve([]) : prisma.transportJob.findMany(),
+      scope === 'maintenance' || scope === 'procurement' ? Promise.resolve([]) : prisma.marketingCustomer.findMany(),
     ])
+
+    const counts: Record<string, number> = {
+      auditLogs: auditLogs.length,
+      notifications: notifications.length,
+      settings: appSettings.length,
+    }
+
+    const data: Record<string, any> = {
+      appSettings,
+      auditLogs,
+      notifications,
+    }
+
+    if (scope === 'marketing') {
+      counts.transportJobs = transportJobs.length
+      counts.marketingCustomers = marketingCustomers.length
+      data.transportJobs = transportJobs
+      data.marketingCustomers = marketingCustomers
+    } else if (scope === 'procurement') {
+      counts.suppliers = suppliers.length
+      data.suppliers = suppliers
+    } else {
+      counts.parts = parts.length
+      counts.categories = partCategories.length
+      counts.suppliers = suppliers.length
+      counts.vehicles = vehicles.length
+      counts.vehicleTypes = vehicleTypes.length
+      counts.odometerReadings = odometerReadings.length
+      counts.stockReceipts = stockReceipts.length
+      counts.stockReceiptItems = stockReceiptItems.length
+      counts.partIssues = partIssues.length
+      counts.partIssueItems = partIssueItems.length
+      counts.partReturns = partReturns.length
+      counts.inventoryTransactions = inventoryTransactions.length
+      counts.repairOrders = repairOrders.length
+      counts.repairOrderItems = repairOrderItems.length
+      counts.maintenancePlans = maintenancePlans.length
+      counts.maintenanceRecords = maintenanceRecords.length
+      if (transportJobs.length > 0) counts.transportJobs = transportJobs.length
+      if (marketingCustomers.length > 0) counts.marketingCustomers = marketingCustomers.length
+
+      data.parts = parts
+      data.partCategories = partCategories
+      data.suppliers = suppliers
+      data.vehicles = vehicles
+      data.vehicleTypes = vehicleTypes
+      data.odometerReadings = odometerReadings
+      data.stockReceipts = stockReceipts
+      data.stockReceiptItems = stockReceiptItems
+      data.partIssues = partIssues
+      data.partIssueItems = partIssueItems
+      data.partReturns = partReturns
+      data.inventoryTransactions = inventoryTransactions
+      data.repairOrders = repairOrders
+      data.repairOrderItems = repairOrderItems
+      data.maintenancePlans = maintenancePlans
+      data.maintenanceRecords = maintenanceRecords
+      if (transportJobs.length > 0) data.transportJobs = transportJobs
+      if (marketingCustomers.length > 0) data.marketingCustomers = marketingCustomers
+    }
 
     const snapshot = {
       version: '1.0.0',
       exportedAt: now.toISOString(),
       provider: isPostgres ? 'Neon Cloud PostgreSQL' : 'SQLite',
+      scope,
       reason: body.reason || 'Database backup snapshot',
-      counts: {
-        parts: parts.length,
-        categories: partCategories.length,
-        suppliers: suppliers.length,
-        vehicles: vehicles.length,
-        vehicleTypes: vehicleTypes.length,
-        odometerReadings: odometerReadings.length,
-        stockReceipts: stockReceipts.length,
-        stockReceiptItems: stockReceiptItems.length,
-        partIssues: partIssues.length,
-        partIssueItems: partIssueItems.length,
-        partReturns: partReturns.length,
-        inventoryTransactions: inventoryTransactions.length,
-        repairOrders: repairOrders.length,
-        repairOrderItems: repairOrderItems.length,
-        maintenancePlans: maintenancePlans.length,
-        maintenanceRecords: maintenanceRecords.length,
-        notifications: notifications.length,
-        auditLogs: auditLogs.length,
-      },
-      data: {
-        parts,
-        partCategories,
-        suppliers,
-        vehicles,
-        vehicleTypes,
-        odometerReadings,
-        stockReceipts,
-        stockReceiptItems,
-        partIssues,
-        partIssueItems,
-        partReturns,
-        inventoryTransactions,
-        repairOrders,
-        repairOrderItems,
-        maintenancePlans,
-        maintenanceRecords,
-        notifications,
-        auditLogs,
-        appSettings,
-      },
+      counts,
+      data,
     }
 
-    const backupFileName = isPostgres
-      ? `cloud_backup_${timestamp}.json`
-      : `storage_backup_${timestamp}.json`
+    const backupFileName =
+      scope === 'marketing'
+        ? `marketing_backup_${timestamp}.json`
+        : scope === 'procurement'
+        ? `procurement_backup_${timestamp}.json`
+        : isPostgres
+        ? `cloud_backup_${timestamp}.json`
+        : `storage_backup_${timestamp}.json`
 
     // Save to BACKUP_DIR on server if possible
     try {

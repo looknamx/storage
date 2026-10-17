@@ -103,7 +103,61 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // CASE 2: Reset Program A (Fleet & Repairs)
+    // CASE 2: Reset Program C (Procurement)
+    // ==========================================
+    if (scope === 'program_c') {
+      const backupFilename = `procurement_backup_before_reset_${timestamp}.json`
+
+      const [suppliers] = await Promise.all([
+        prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
+      ])
+
+      const snapshot = {
+        version: '1.0.0',
+        program: 'C (Procurement)',
+        exportedAt: now.toISOString(),
+        reason: 'Pre-reset safety backup for Procurement',
+        counts: {
+          suppliers: suppliers.length,
+        },
+        data: {
+          suppliers,
+        },
+      }
+
+      if (!fs.existsSync(BACKUP_DIR)) {
+        fs.mkdirSync(BACKUP_DIR, { recursive: true })
+      }
+      fs.writeFileSync(
+        path.join(BACKUP_DIR, backupFilename),
+        JSON.stringify(snapshot, null, 2),
+        'utf8'
+      )
+
+      // Audit log
+      await prisma.auditLog.create({
+        data: {
+          action: 'reset',
+          entityType: 'procurement',
+          entityId: 'procurement_system',
+          description: `ล้างข้อมูลระบบฝ่ายจัดซื้อ ทั้งหมดเพื่อเริ่มใช้งานใหม่ (สำรองข้อมูลไว้ที่ ${backupFilename})`,
+          newValue: JSON.stringify(snapshot.counts),
+          performedBy: 'ผู้ดูแลระบบฝ่ายจัดซื้อ',
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        scope: 'program_c',
+        message: 'ล้างข้อมูลระบบฝ่ายจัดซื้อ เรียบร้อยแล้ว (ข้อมูลฝ่ายซ่อมบำรุงและการตลาดคงอยู่ครบถ้วน 100%)',
+        backupFilename,
+        deletedSummary: snapshot.counts,
+        snapshot,
+      })
+    }
+
+    // ==========================================
+    // CASE 3: Reset Program A (Fleet & Repairs)
     // ==========================================
     if (scope === 'program_a') {
       const backupFilename = `fleet_backup_before_reset_${timestamp}.json`
