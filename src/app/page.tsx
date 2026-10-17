@@ -3,18 +3,16 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-  Wrench, 
   TrendingUp, 
   ArrowRight, 
-  Lock, 
   CheckCircle2, 
-  ShieldCheck, 
   AlertCircle,
   X,
   Delete,
   KeyRound,
   Truck
 } from 'lucide-react';
+import { isProgramAuthenticated, setProgramAuthenticated } from '@/lib/auth';
 
 function PortalContent() {
   const router = useRouter();
@@ -38,19 +36,18 @@ function PortalContent() {
     }
   }, [searchParams]);
 
+  // Set title
+  useEffect(() => {
+    document.title = 'ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)';
+  }, []);
+
   // Handle program click: check existing session or prompt PIN
   const handleSelectProgram = (program: 'a' | 'b') => {
-    const storageKey = program === 'a' ? 'auth_program_a' : 'auth_program_b';
     const destination = program === 'a' ? '/dashboard' : '/marketing';
 
-    try {
-      const isAuthed = localStorage.getItem(storageKey) === 'true' || sessionStorage.getItem(storageKey) === 'true';
-      if (isAuthed) {
-        router.push(destination);
-        return;
-      }
-    } catch (e) {
-      // ignore
+    if (isProgramAuthenticated(program)) {
+      router.push(destination);
+      return;
     }
 
     // Open PIN login modal
@@ -89,15 +86,8 @@ function PortalContent() {
 
       if (data.valid) {
         setSuccess(true);
-        const storageKey = activeProgram === 'a' ? 'auth_program_a' : 'auth_program_b';
+        setProgramAuthenticated(activeProgram);
         const destination = activeProgram === 'a' ? '/dashboard' : '/marketing';
-
-        try {
-          localStorage.setItem(storageKey, 'true');
-          sessionStorage.setItem(storageKey, 'true');
-        } catch (e) {
-          // ignore
-        }
 
         setTimeout(() => {
           router.push(destination);
@@ -146,20 +136,10 @@ function PortalContent() {
 
       {/* Main Container / Window */}
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
-        {/* Header Section */}
-        <div className="text-center mb-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/80 shadow-inner backdrop-blur-md text-xs font-medium text-blue-400">
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
-            เลือกระบบงานที่ต้องการใช้งาน
-          </h1>
-          <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto font-normal">
-            กรุณาเลือกโมดูลเพื่อเข้าสู่ระบบงาน (ระบบจะตรวจสอบรหัส PIN เพื่อความปลอดภัย)
-          </p>
-        </div>
+        {/* Title Page */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-8 sm:mb-10 text-center">
+          ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)
+        </h1>
 
         {/* 2 Main Program Buttons / Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
@@ -234,13 +214,6 @@ function PortalContent() {
               </div>
             </div>
           </button>
-        </div>
-
-        {/* Footer info */}
-        <div className="mt-12 text-center text-xs text-slate-500 flex items-center gap-2">
-          <span>Enterprise Portal Platform</span>
-          <span>•</span>
-          <span>รหัส PIN เริ่มต้น: 1234</span>
         </div>
       </div>
 

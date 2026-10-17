@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { clearProgramAuth } from '@/lib/auth';
 
 interface MenuItem {
   label: string;
@@ -336,12 +337,7 @@ export default function Sidebar({
             type="button"
             onClick={() => {
               if (confirm('คุณต้องการออกจากระบบบริหารจัดการแผนซ่อมบำรุง ใช่หรือไม่?')) {
-                try {
-                  localStorage.removeItem('auth_program_a');
-                  sessionStorage.removeItem('auth_program_a');
-                } catch (e) {
-                  // ignore
-                }
+                clearProgramAuth('a');
                 window.location.href = '/';
               }
             }}

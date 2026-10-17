@@ -20,6 +20,7 @@ import {
   LogOut,
   Settings,
 } from 'lucide-react';
+import { clearProgramAuth } from '@/lib/auth';
 
 interface MenuItem {
   label: string;
@@ -278,12 +279,7 @@ export default function MarketingSidebar({
             type="button"
             onClick={() => {
               if (confirm('คุณต้องการออกจากระบบแผนงานการตลาด ใช่หรือไม่?')) {
-                try {
-                  localStorage.removeItem('auth_program_b');
-                  sessionStorage.removeItem('auth_program_b');
-                } catch (e) {
-                  // ignore
-                }
+                clearProgramAuth('b');
                 window.location.href = '/';
               }
             }}

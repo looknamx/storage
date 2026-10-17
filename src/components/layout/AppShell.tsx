@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import MarketingSidebar from '@/components/layout/MarketingSidebar';
 import Topbar from '@/components/layout/Topbar';
 import AutoBackupRunner from '@/components/AutoBackupRunner';
+import { isProgramAuthenticated } from '@/lib/auth';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -50,35 +51,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Authentication check for Program A vs Program B
+  // Authentication check for Program A vs Program B (Daily PIN session)
   useEffect(() => {
     if (pathname === '/') {
       setIsAuthenticated(true);
       return;
     }
 
-    try {
-      if (isMarketing) {
-        const authedB =
-          localStorage.getItem('auth_program_b') === 'true' ||
-          sessionStorage.getItem('auth_program_b') === 'true';
-        if (!authedB) {
-          window.location.href = '/?login=b';
-          return;
-        }
-      } else {
-        const authedA =
-          localStorage.getItem('auth_program_a') === 'true' ||
-          sessionStorage.getItem('auth_program_a') === 'true';
-        if (!authedA) {
-          window.location.href = '/?login=a';
-          return;
-        }
+    const checkDailyAuth = () => {
+      const targetProgram = isMarketing ? 'b' : 'a';
+      if (!isProgramAuthenticated(targetProgram)) {
+        setIsAuthenticated(false);
+        window.location.href = `/?login=${targetProgram}`;
+        return false;
       }
       setIsAuthenticated(true);
-    } catch (e) {
-      setIsAuthenticated(true);
-    }
+      return true;
+    };
+
+    checkDailyAuth();
+
+    // Check periodically or when user switches back to the tab,
+    // ensuring session expires immediately upon date change (ขึ้นวันใหม่)
+    const timer = setInterval(checkDailyAuth, 30000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkDailyAuth();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [pathname, isMarketing]);
 
   // When visiting portal landing page (root path), render clean standalone window without sidebar/topbar

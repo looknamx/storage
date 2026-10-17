@@ -11,8 +11,8 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: 'ระบบบริหารรถบริษัท | Fleet Management System',
-  description: 'ระบบจัดการคลังอะไหล่และบริหารรถบริษัท',
+  title: 'ศูนย์กลางระบบสารสนเทศองค์กร (Enterprise Portal)',
+  description: 'ศูนย์กลางระบบสารสนเทศองค์กร - ระบบบริหารจัดการแผนซ่อมบำรุง และระบบแผนงานการตลาด',
 };
 
 export default function RootLayout({
