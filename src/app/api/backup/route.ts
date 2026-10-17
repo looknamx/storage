@@ -350,12 +350,29 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const filename = searchParams.get('filename')
+    const scope = searchParams.get('scope')
 
     if (!filename) {
       return NextResponse.json({ error: 'กรุณาระบุชื่อไฟล์ที่ต้องการลบ' }, { status: 400 })
     }
 
     const safeName = path.basename(filename)
+
+    // Security guard: Prevent cross-program deletion
+    if (scope && scope !== 'all') {
+      if (scope === 'marketing' && !safeName.startsWith('marketing_')) {
+        return NextResponse.json({ error: 'ไม่สามารถลบไฟล์สำรองข้อมูลของโปรแกรมอื่นได้' }, { status: 403 })
+      }
+      if (scope === 'procurement' && !safeName.startsWith('procurement_')) {
+        return NextResponse.json({ error: 'ไม่สามารถลบไฟล์สำรองข้อมูลของโปรแกรมอื่นได้' }, { status: 403 })
+      }
+      if (
+        scope === 'maintenance' &&
+        (safeName.startsWith('marketing_') || safeName.startsWith('procurement_'))
+      ) {
+        return NextResponse.json({ error: 'ไม่สามารถลบไฟล์สำรองข้อมูลของโปรแกรมอื่นได้' }, { status: 403 })
+      }
+    }
 
     // Delete from Neon PostgreSQL database
     let dbDeleted = false

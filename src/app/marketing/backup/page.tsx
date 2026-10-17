@@ -32,8 +32,7 @@ export default function MarketingBackupPage() {
   const [backingUpDownload, setBackingUpDownload] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  // Scope Filter & Deletion
-  const [fileFilter, setFileFilter] = useState<'marketing' | 'all'>('marketing');
+  // Deletion
   const [selectedBackupForDelete, setSelectedBackupForDelete] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -53,11 +52,10 @@ export default function MarketingBackupPage() {
   const [parsingJson, setParsingJson] = useState(false);
   const [isJsonRestoreModalOpen, setIsJsonRestoreModalOpen] = useState(false);
 
-  const fetchBackups = async (filter = fileFilter) => {
+  const fetchBackups = async () => {
     try {
       setLoading(true);
-      const url = filter === 'all' ? '/api/backup' : '/api/backup?scope=marketing';
-      const res = await fetch(url);
+      const res = await fetch('/api/backup?scope=marketing');
       const data = await res.json();
       setBackups(data.backups || []);
       setLastBackup(data.lastBackup || null);
@@ -285,7 +283,7 @@ export default function MarketingBackupPage() {
       setSuccessMessage('');
 
       const res = await fetch(
-        `/api/backup?filename=${encodeURIComponent(selectedBackupForDelete.filename)}`,
+        `/api/backup?filename=${encodeURIComponent(selectedBackupForDelete.filename)}&scope=marketing`,
         { method: 'DELETE' }
       );
       const data = await res.json();
@@ -486,53 +484,17 @@ export default function MarketingBackupPage() {
               ประวัติและไฟล์สำรองข้อมูลบนระบบ (Server Backup Files)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {fileFilter === 'marketing'
-                ? `แสดงเฉพาะไฟล์สำรอง (JSON) ของฝ่ายการตลาด (${backups.length} ไฟล์)`
-                : `ไฟล์สำรองข้อมูลทั้งหมดในระบบ (${backups.length} ไฟล์)`}
+              แสดงเฉพาะไฟล์สำรอง (JSON) ของฝ่ายการตลาด ({backups.length} ไฟล์)
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Filter Tabs */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setFileFilter('marketing');
-                  fetchBackups('marketing');
-                }}
-                className={`px-3 py-1 rounded-lg font-semibold transition ${
-                  fileFilter === 'marketing'
-                    ? 'bg-white text-purple-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                เฉพาะไฟล์การตลาด
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFileFilter('all');
-                  fetchBackups('all');
-                }}
-                className={`px-3 py-1 rounded-lg font-semibold transition ${
-                  fileFilter === 'all'
-                    ? 'bg-white text-purple-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                ไฟล์ทั้งหมด
-              </button>
-            </div>
-
-            <button
-              onClick={() => fetchBackups()}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-              title="รีเฟรช"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <button
+            onClick={() => fetchBackups()}
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+            title="รีเฟรช"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {backups.length === 0 ? (
