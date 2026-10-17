@@ -47,7 +47,7 @@ export default function MarketingBillingPage() {
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
   const [modalIsPaid, setModalIsPaid] = useState<boolean>(false);
   const [modalPaymentDate, setModalPaymentDate] = useState<string>('');
-  const [modalPaymentMethods, setModalPaymentMethods] = useState<string[]>([]); // 'เงินสด', 'เงินโอน', 'เช็คเงินสด'
+  const [modalPaymentMethod, setModalPaymentMethod] = useState<string>('เงินโอน'); // Option Check: 'เงินสด', 'เงินโอน', 'เช็คเงินสด'
   const [modalPaymentNote, setModalPaymentNote] = useState<string>('');
   const [isSavingStatus, setIsSavingStatus] = useState<boolean>(false);
 
@@ -165,32 +165,20 @@ export default function MarketingBillingPage() {
         : new Date().toISOString().split('T')[0]
     );
 
-    // Extract payment methods
-    const existingMethods: string[] = [];
+    // Extract payment method option
     const rawMethod = String(inv.paymentMethod || '').trim();
-    if (rawMethod.includes('เงินสด') && !rawMethod.includes('เช็คเงินสด')) {
-      existingMethods.push('เงินสด');
-    }
-    if (rawMethod.includes('เงินโอน')) {
-      existingMethods.push('เงินโอน');
-    }
+    let detectedMethod = 'เงินโอน';
     if (rawMethod.includes('เช็ค')) {
-      existingMethods.push('เช็คเงินสด');
+      detectedMethod = 'เช็คเงินสด';
+    } else if (rawMethod.includes('เงินสด')) {
+      detectedMethod = 'เงินสด';
+    } else if (rawMethod.includes('เงินโอน')) {
+      detectedMethod = 'เงินโอน';
+    } else if (rawMethod) {
+      detectedMethod = rawMethod;
     }
-    if (rawMethod && existingMethods.length === 0) {
-      existingMethods.push(rawMethod);
-    }
-    setModalPaymentMethods(existingMethods);
+    setModalPaymentMethod(detectedMethod);
     setModalPaymentNote(inv.paymentNote || '');
-  };
-
-  const handleTogglePaymentMethod = (method: string) => {
-    if (!modalIsPaid) {
-      setModalIsPaid(true);
-    }
-    setModalPaymentMethods((prev) =>
-      prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
-    );
   };
 
   const handleSaveModalStatus = async (e: React.FormEvent) => {
@@ -198,12 +186,11 @@ export default function MarketingBillingPage() {
     if (!editingInvoice) return;
     try {
       setIsSavingStatus(true);
-      const methodStr = modalPaymentMethods.join(', ');
       await updateInvoiceStatus(
         editingInvoice.invoiceNo,
         modalIsPaid,
         modalIsPaid ? modalPaymentDate : null,
-        modalIsPaid ? methodStr : null,
+        modalIsPaid ? modalPaymentMethod : null,
         modalIsPaid ? modalPaymentNote : null
       );
       setEditingInvoice(null);
@@ -824,10 +811,10 @@ export default function MarketingBillingPage() {
                     />
                   </div>
 
-                  {/* Payment Method Checkboxes: เงินสด , เงินโอน , เช็คเงินสด */}
+                  {/* Payment Method Option Check: เงินสด , เงินโอน , เช็คเงินสด (เลือกได้ 1 ตัวเลือก) */}
                   <div className="space-y-1.5">
                     <label className="font-semibold text-gray-700 block">
-                      วิธีการรับชำระเงิน (Check Box เลือกได้)
+                      วิธีการรับชำระเงิน * (เลือก 1 ตัวเลือก)
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
@@ -835,24 +822,26 @@ export default function MarketingBillingPage() {
                         { id: 'เงินโอน', label: 'เงินโอน', icon: Landmark },
                         { id: 'เช็คเงินสด', label: 'เช็คเงินสด', icon: FileCheck },
                       ].map((item) => {
-                        const isChecked = modalPaymentMethods.includes(item.id);
+                        const isSelected = modalPaymentMethod === item.id;
                         const Icon = item.icon;
                         return (
                           <label
                             key={item.id}
-                            className={`flex items-center gap-1.5 p-2 rounded-xl border cursor-pointer select-none transition-all ${
-                              isChecked
+                            className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer select-none transition-all ${
+                              isSelected
                                 ? 'bg-purple-50 border-purple-500 text-purple-900 font-bold ring-2 ring-purple-500/20'
                                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-medium'
                             }`}
                           >
                             <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => handleTogglePaymentMethod(item.id)}
-                              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                              type="radio"
+                              name="modalPaymentMethod"
+                              value={item.id}
+                              checked={isSelected}
+                              onChange={() => setModalPaymentMethod(item.id)}
+                              className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
                             />
-                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-purple-600' : 'text-gray-400'}`} />
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-purple-600' : 'text-gray-400'}`} />
                             <span className="text-xs truncate">{item.label}</span>
                           </label>
                         );

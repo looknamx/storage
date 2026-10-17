@@ -46,14 +46,12 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
   const [paymentDate, setPaymentDate] = useState<string>(
     initialData?.paymentDate ? initialData.paymentDate.split('T')[0] : ''
   );
-  const [paymentMethods, setPaymentMethods] = useState<string[]>(() => {
+  const [paymentMethod, setPaymentMethod] = useState<string>(() => {
     const raw = String(initialData?.paymentMethod || '').trim();
-    const arr: string[] = [];
-    if (raw.includes('เงินสด') && !raw.includes('เช็คเงินสด')) arr.push('เงินสด');
-    if (raw.includes('เงินโอน')) arr.push('เงินโอน');
-    if (raw.includes('เช็ค')) arr.push('เช็คเงินสด');
-    if (raw && arr.length === 0) arr.push(raw);
-    return arr;
+    if (raw.includes('เช็ค')) return 'เช็คเงินสด';
+    if (raw.includes('เงินสด')) return 'เงินสด';
+    if (raw.includes('เงินโอน')) return 'เงินโอน';
+    return raw || 'เงินโอน';
   });
   const [paymentNote, setPaymentNote] = useState<string>(initialData?.paymentNote || '');
 
@@ -236,7 +234,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
         isApproved,
         isPaid,
         paymentDate: isPaid && paymentDate ? new Date(paymentDate) : null,
-        paymentMethod: isPaid ? (paymentMethods.length > 0 ? paymentMethods.join(', ') : null) : null,
+        paymentMethod: isPaid ? (paymentMethod.trim() || null) : null,
         paymentNote: isPaid ? (paymentNote.trim() || null) : null,
         isSubcontractor,
         vehicleType,
@@ -475,25 +473,23 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
                   { id: 'เงินโอน', label: 'เงินโอน' },
                   { id: 'เช็คเงินสด', label: 'เช็คเงินสด' },
                 ].map((item) => {
-                  const isChecked = paymentMethods.includes(item.id);
+                  const isSelected = paymentMethod === item.id;
                   return (
                     <label
                       key={item.id}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition-all ${
-                        isChecked
+                        isSelected
                           ? 'bg-purple-100/80 border-purple-500 text-purple-900 font-bold ring-1 ring-purple-500/20'
                           : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
                       <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          setPaymentMethods((prev) =>
-                            prev.includes(item.id) ? prev.filter((m) => m !== item.id) : [...prev, item.id]
-                          );
-                        }}
-                        className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                        type="radio"
+                        name="jobOrderPaymentMethod"
+                        value={item.id}
+                        checked={isSelected}
+                        onChange={() => setPaymentMethod(item.id)}
+                        className="w-3.5 h-3.5 text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
                       />
                       <span>{item.label}</span>
                     </label>
