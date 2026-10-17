@@ -306,7 +306,7 @@ export default function BackupPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">

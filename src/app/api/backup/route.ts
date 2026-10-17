@@ -13,13 +13,22 @@ export async function GET(request: Request) {
     const onlyJson = searchParams.get('onlyJson') === 'true'
     const isPostgres = process.env.DATABASE_URL?.startsWith('postgres')
 
-    let backups: any[] = []
-    let lastBackup = null
+    let dbBackups: any[] = []
+    try {
+      dbBackups = await prisma.systemBackup.findMany({
+        orderBy: { createdAt: 'desc' },
+      })
+    } catch (e) {
+      console.warn('Could not query SystemBackup from database:', e)
+    }
 
+    const dbBackupFilenames = new Set(dbBackups.map((b) => b.filename))
+
+    let fsBackups: any[] = []
     if (fs.existsSync(BACKUP_DIR)) {
       const files = fs.readdirSync(BACKUP_DIR)
-      backups = files
-        .filter((file) => file.endsWith('.db') || file.endsWith('.json'))
+      fsBackups = files
+        .filter((file) => (file.endsWith('.db') || file.endsWith('.json')) && !dbBackupFilenames.has(file))
         .map((file) => {
           const filePath = path.join(BACKUP_DIR, file)
           const stats = fs.statSync(filePath)
@@ -29,7 +38,6 @@ export async function GET(request: Request) {
             fileDate = stats.birthtime
           }
 
-          // If filename contains timestamp like 20261015_220227
           const fnMatch = file.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/)
           if (fnMatch) {
             const parsed = new Date(
@@ -79,23 +87,43 @@ export async function GET(request: Request) {
             modifiedAt: stats.mtime,
           }
         })
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
-      // Filter by scope if specified
-      if (scope && scope !== 'all') {
-        backups = backups.filter((b) => b.scope === scope)
-      }
-
-      // Filter by JSON only if requested
-      if (onlyJson) {
-        backups = backups.filter((b) => b.isJson)
-      }
-
-      lastBackup = backups[0] || null
     }
 
+    let allBackups = [
+      ...dbBackups.map((b) => ({
+        filename: b.filename,
+        isJson: b.format === 'JSON' || b.filename.endsWith('.json'),
+        format: b.format || 'JSON',
+        scope: b.scope,
+        scopeLabel:
+          b.scopeLabel ||
+          (b.scope === 'marketing'
+            ? 'แผนงานการตลาด'
+            : b.scope === 'procurement'
+            ? 'แผนงานฝ่ายจัดซื้อ'
+            : 'แผนงานซ่อมบำรุง'),
+        sizeBytes: b.sizeBytes,
+        sizeFormatted: b.sizeFormatted,
+        createdAt: b.createdAt,
+        modifiedAt: b.updatedAt,
+      })),
+      ...fsBackups,
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    // Filter by scope if specified
+    if (scope && scope !== 'all') {
+      allBackups = allBackups.filter((b) => b.scope === scope)
+    }
+
+    // Filter by JSON only if requested
+    if (onlyJson) {
+      allBackups = allBackups.filter((b) => b.isJson)
+    }
+
+    const lastBackup = allBackups[0] || null
+
     return NextResponse.json({
-      backups,
+      backups: allBackups,
       lastBackup,
       databasePath: isPostgres ? 'Neon Cloud PostgreSQL' : DB_PATH,
       isCloud: isPostgres,
@@ -246,7 +274,48 @@ export async function POST(request: Request) {
         ? `cloud_backup_${timestamp}.json`
         : `storage_backup_${timestamp}.json`
 
-    // Save to BACKUP_DIR on server if possible
+    const jsonString = JSON.stringify(snapshot)
+    const sizeFormatted =
+      jsonString.length > 1024 * 1024
+        ? `${(jsonString.length / (1024 * 1024)).toFixed(2)} MB`
+        : `${(jsonString.length / 1024).toFixed(1)} KB`
+
+    const determinedScopeLabel =
+      scope === 'marketing'
+        ? 'แผนงานการตลาด'
+        : scope === 'procurement'
+        ? 'แผนงานฝ่ายจัดซื้อ'
+        : 'แผนงานซ่อมบำรุง'
+
+    // 1. Save permanently to Neon PostgreSQL SystemBackup table
+    try {
+      await prisma.systemBackup.upsert({
+        where: { filename: backupFileName },
+        update: {
+          scope,
+          scopeLabel: determinedScopeLabel,
+          format: 'JSON',
+          sizeBytes: jsonString.length,
+          sizeFormatted,
+          content: jsonString,
+          updatedAt: now,
+        },
+        create: {
+          filename: backupFileName,
+          scope,
+          scopeLabel: determinedScopeLabel,
+          format: 'JSON',
+          sizeBytes: jsonString.length,
+          sizeFormatted,
+          content: jsonString,
+          createdAt: now,
+        },
+      })
+    } catch (dbErr) {
+      console.warn('Could not save snapshot to Neon PostgreSQL database:', dbErr)
+    }
+
+    // 2. Also attempt saving to BACKUP_DIR on server filesystem if possible
     try {
       if (!fs.existsSync(BACKUP_DIR)) {
         fs.mkdirSync(BACKUP_DIR, { recursive: true })
@@ -256,12 +325,6 @@ export async function POST(request: Request) {
     } catch (e) {
       console.warn('Could not write backup to disk:', e)
     }
-
-    const jsonString = JSON.stringify(snapshot)
-    const sizeFormatted =
-      jsonString.length > 1024 * 1024
-        ? `${(jsonString.length / (1024 * 1024)).toFixed(2)} MB`
-        : `${(jsonString.length / 1024).toFixed(1)} KB`
 
     return NextResponse.json({
       success: true,
@@ -293,13 +356,33 @@ export async function DELETE(request: Request) {
     }
 
     const safeName = path.basename(filename)
-    const filePath = path.join(BACKUP_DIR, safeName)
 
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: 'ไม่พบไฟล์สำรองข้อมูลที่ต้องการลบ' }, { status: 404 })
+    // Delete from Neon PostgreSQL database
+    let dbDeleted = false
+    try {
+      const res = await prisma.systemBackup.deleteMany({
+        where: { filename: safeName },
+      })
+      if (res.count > 0) dbDeleted = true
+    } catch (dbErr) {
+      console.warn('Could not delete from database:', dbErr)
     }
 
-    fs.unlinkSync(filePath)
+    // Delete from disk if file exists
+    let fsDeleted = false
+    try {
+      const filePath = path.join(BACKUP_DIR, safeName)
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+        fsDeleted = true
+      }
+    } catch (fsErr) {
+      console.warn('Could not delete from disk:', fsErr)
+    }
+
+    if (!dbDeleted && !fsDeleted) {
+      return NextResponse.json({ error: 'ไม่พบไฟล์สำรองข้อมูลที่ต้องการลบ' }, { status: 404 })
+    }
 
     return NextResponse.json({
       success: true,

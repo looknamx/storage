@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import prisma from '@/lib/prisma'
 
 const BACKUP_DIR = path.join(process.cwd(), 'backups')
 
@@ -15,8 +16,26 @@ export async function GET(request: Request) {
 
     // Sanitize filename to prevent directory traversal
     const safeName = path.basename(filename)
-    const filePath = path.join(BACKUP_DIR, safeName)
 
+    // 1. Check Neon Cloud database first
+    try {
+      const dbBackup = await prisma.systemBackup.findUnique({
+        where: { filename: safeName },
+      })
+      if (dbBackup && dbBackup.content) {
+        return new NextResponse(dbBackup.content, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Disposition': `attachment; filename="${safeName}"`,
+          },
+        })
+      }
+    } catch (dbErr) {
+      console.warn('Could not read backup from database:', dbErr)
+    }
+
+    // 2. Fallback to filesystem
+    const filePath = path.join(BACKUP_DIR, safeName)
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'ไม่พบไฟล์ที่ระบุ' }, { status: 404 })
     }

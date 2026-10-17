@@ -510,8 +510,28 @@ export async function POST(request: Request) {
       })
     }
 
-    // CASE 2: Restore from a file in /backups
+    // CASE 2: Restore from a file in /backups or from Neon Cloud database
     const safeName = path.basename(filename)
+
+    // Check Neon Cloud DB first
+    try {
+      const dbBackup = await prisma.systemBackup.findUnique({
+        where: { filename: safeName },
+      })
+      if (dbBackup && dbBackup.content) {
+        const snapshot = JSON.parse(dbBackup.content)
+        const summary = await restoreFromJsonSnapshot(snapshot)
+        return NextResponse.json({
+          success: true,
+          message: `กู้คืนฐานข้อมูลจากไฟล์ "${safeName}" สำเร็จเรียบร้อยแล้ว`,
+          safetyBackupCreated: safetyBackupName,
+          restoredSummary: summary,
+        })
+      }
+    } catch (dbErr) {
+      console.warn('Could not read backup from database during restore:', dbErr)
+    }
+
     const backupFilePath = path.join(BACKUP_DIR, safeName)
 
     if (!fs.existsSync(backupFilePath)) {

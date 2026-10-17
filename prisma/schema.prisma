@@ -465,4 +465,22 @@ model TransportJob {
   @@index([loadingDate])
 }
 
+// ==================== ประวัติไฟล์สำรองข้อมูลบนระบบ (Server Backup Storage) ====================
+
+model SystemBackup {
+  id            String   @id @default(cuid())
+  filename      String   @unique
+  scope         String   // maintenance, marketing, procurement, all
+  scopeLabel    String?  // แผนงานซ่อมบำรุง, แผนงานการตลาด, แผนงานฝ่ายจัดซื้อ
+  format        String   @default("JSON") // JSON, SQLITE
+  sizeBytes     Int      @default(0)
+  sizeFormatted String   @default("0 KB")
+  content       String   @db.Text // Full JSON snapshot string
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([scope])
+  @@index([createdAt])
+}
+
 
