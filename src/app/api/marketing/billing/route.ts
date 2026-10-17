@@ -21,27 +21,27 @@ export async function GET(req: NextRequest) {
       _count: { id: true },
     });
 
-    const availableMonths = monthsGroup.map((g) => ({
-      month: g.jobMonth || '',
-      year: g.jobYear || 2569,
-      count: g._count.id,
-    }));
-    const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
+    const monthList = Array.from(new Set(monthsGroup.map((g) => g.jobMonth).filter(Boolean))) as string[];
+    const availableYears = Array.from(new Set(monthsGroup.map((g) => g.jobYear || 2569))).sort((a, b) => b - a);
 
     // Default month/year if not specified and period is month or year
-    const activeMonth = requestedMonth || (availableMonths[0]?.month || 'ก.ค.');
-    const activeYear = requestedYear ? parseInt(requestedYear, 10) : (availableMonths[0]?.year || 2569);
+    const activeMonth = requestedMonth || (monthList[0] || 'ก.ค.');
+    const activeYear = requestedYear ? parseInt(requestedYear, 10) : (availableYears[0] || 2569);
 
     // 2. Build where filter for TransportJob
     const where: any = {
       invoiceNo: { not: null, notIn: ['', '-'] },
     };
 
+    const andConditions: any[] = [];
+
     if (search) {
-      where.OR = [
-        { invoiceNo: { contains: search, mode: 'insensitive' } },
-        { customerName: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { invoiceNo: { contains: search, mode: 'insensitive' } },
+          { customerName: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
 
     if (status === 'paid') {
@@ -53,11 +53,12 @@ export async function GET(req: NextRequest) {
     // Date / Period Filter
     if (period === '7days') {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      where.OR = [
-        ...(where.OR || []),
-        { billingDate: { gte: sevenDaysAgo } },
-        { loadingDate: { gte: sevenDaysAgo } },
-      ];
+      andConditions.push({
+        OR: [
+          { billingDate: { gte: sevenDaysAgo } },
+          { loadingDate: { gte: sevenDaysAgo } },
+        ],
+      });
     } else if (period === 'month') {
       if (activeMonth && activeMonth !== 'all') {
         where.jobMonth = activeMonth;
@@ -71,6 +72,10 @@ export async function GET(req: NextRequest) {
       }
     }
     // if period === 'all', no date filters are applied (ยกมาแสดงทั้งหมด)
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
 
     // 3. Query jobs matching filter
     const jobs = await prisma.transportJob.findMany({
@@ -116,42 +121,62 @@ export async function GET(req: NextRequest) {
       if (sortBy === 'billingDate') {
         const timeA = a.billingDate ? new Date(a.billingDate).getTime() : 0;
         const timeB = b.billingDate ? new Date(b.billingDate).getTime() : 0;
-        comparison = timeB - timeA;
+        comparison = timeA - timeB;
       } else if (sortBy === 'jobsCount') {
-        comparison = (b.jobsCount || 0) - (a.jobsCount || 0);
+        comparison = (a.jobsCount || 0) - (b.jobsCount || 0);
       } else if (sortBy === 'totalGross') {
-        comparison = (b.totalGross || 0) - (a.totalGross || 0);
+        comparison = (a.totalGross || 0) - (b.totalGross || 0);
       } else if (sortBy === 'totalWht') {
-        comparison = (b.totalWht || 0) - (a.totalWht || 0);
+        comparison = (a.totalWht || 0) - (b.totalWht || 0);
       } else if (sortBy === 'totalNetRevenue') {
-        comparison = (b.totalNetRevenue || 0) - (a.totalNetRevenue || 0);
+        comparison = (a.totalNetRevenue || 0) - (b.totalNetRevenue || 0);
+      } else if (sortBy === 'customerName') {
+        comparison = (a.customerName || '').localeCompare(b.customerName || '', 'th');
       } else if (sortBy === 'invoiceNo') {
-        comparison = a.invoiceNo.localeCompare(b.invoiceNo);
+        comparison = (a.invoiceNo || '').localeCompare(b.invoiceNo || '');
+      } else if (sortBy === 'isPaid') {
+        comparison = (a.isPaid ? 1 : 0) - (b.isPaid ? 1 : 0);
       } else {
         comparison = 0;
       }
 
-      return sortOrder === 'asc' ? -comparison : comparison;
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
 
+    const totalGrossAll = invoices.reduce((acc, curr) => acc + (curr.totalGross || 0), 0);
+    const totalWhtAll = invoices.reduce((acc, curr) => acc + (curr.totalWht || 0), 0);
+    const totalNetAll = invoices.reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+    const paidInvoices = invoices.filter((i) => i.isPaid).length;
+    const unpaidInvoices = invoices.filter((i) => !i.isPaid).length;
+    const paidAmount = invoices.filter((i) => i.isPaid).reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+    const unpaidAmount = invoices.filter((i) => !i.isPaid).reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+
     const summary = {
-      totalGrossAll: invoices.reduce((acc, curr) => acc + (curr.totalGross || 0), 0),
-      totalWhtAll: invoices.reduce((acc, curr) => acc + (curr.totalWht || 0), 0),
-      totalNetAll: invoices.reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0),
+      totalGross: totalGrossAll,
+      totalWht: totalWhtAll,
+      totalNet: totalNetAll,
+      totalGrossAll,
+      totalWhtAll,
+      totalNetAll,
       totalInvoices: invoices.length,
-      paidCount: invoices.filter((i) => i.isPaid).length,
-      unpaidCount: invoices.filter((i) => !i.isPaid).length,
+      paidInvoices,
+      unpaidInvoices,
+      paidCount: paidInvoices,
+      unpaidCount: unpaidInvoices,
+      paidAmount,
+      unpaidAmount,
     };
 
     return NextResponse.json({
       invoices,
-      availableMonths,
+      availableMonths: monthList,
       availableYears,
       activeMonth,
       activeYear,
       summary,
     });
   } catch (error: any) {
+    console.error('Error fetching billing data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch billing data', details: error.message },
       { status: 500 }
@@ -182,4 +207,3 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
-

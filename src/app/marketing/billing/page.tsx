@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Receipt,
@@ -15,7 +15,6 @@ import {
   ArrowUp,
   ArrowDown,
   AlertCircle,
-  FileSpreadsheet,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -60,10 +59,23 @@ export default function MarketingBillingPage() {
         } else {
           setInvoices(data.invoices || []);
           setSummary(data.summary || null);
-          if (data.availableMonths) setAvailableMonths(data.availableMonths);
-          if (data.availableYears) setAvailableYears(data.availableYears);
-          if (!selectedMonth && data.activeMonth) setSelectedMonth(data.activeMonth);
-          if (!selectedYear && data.activeYear) setSelectedYear(data.activeYear);
+
+          if (Array.isArray(data.availableMonths)) {
+            const cleanMonths = data.availableMonths
+              .map((m: any) => (typeof m === 'object' && m !== null ? m.month : String(m)))
+              .filter(Boolean);
+            setAvailableMonths(Array.from(new Set(cleanMonths)));
+          }
+
+          if (Array.isArray(data.availableYears)) {
+            const cleanYears = data.availableYears
+              .map((y: any) => (typeof y === 'object' && y !== null ? Number(y.year) : Number(y)))
+              .filter((y: number) => !isNaN(y) && y > 0);
+            setAvailableYears(Array.from(new Set(cleanYears)));
+          }
+
+          if (!selectedMonth && data.activeMonth) setSelectedMonth(String(data.activeMonth));
+          if (!selectedYear && data.activeYear) setSelectedYear(Number(data.activeYear));
         }
       }
     } catch (e) {
@@ -131,11 +143,35 @@ export default function MarketingBillingPage() {
     }).format(val || 0);
   };
 
-  const totalGrossAll = summary?.totalGross ?? invoices.reduce((acc, curr) => acc + (curr.totalGross || 0), 0);
-  const totalNetAll = summary?.totalNet ?? invoices.reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
-  const totalWhtAll = summary?.totalWht ?? invoices.reduce((acc, curr) => acc + (curr.totalWht || 0), 0);
-  const unpaidCount = summary?.unpaidInvoices ?? invoices.filter((i) => !i.isPaid).length;
-  const unpaidAmount = summary?.unpaidAmount ?? invoices.filter((i) => !i.isPaid).reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+  const totalGrossAll =
+    summary?.totalGross ??
+    summary?.totalGrossAll ??
+    invoices.reduce((acc, curr) => acc + (curr.totalGross || 0), 0);
+  const totalNetAll =
+    summary?.totalNet ??
+    summary?.totalNetAll ??
+    invoices.reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+  const totalWhtAll =
+    summary?.totalWht ??
+    summary?.totalWhtAll ??
+    invoices.reduce((acc, curr) => acc + (curr.totalWht || 0), 0);
+  const unpaidCount =
+    summary?.unpaidInvoices ??
+    summary?.unpaidCount ??
+    invoices.filter((i) => !i.isPaid).length;
+  const unpaidAmount =
+    summary?.unpaidAmount ??
+    invoices.filter((i) => !i.isPaid).reduce((acc, curr) => acc + (curr.totalNetRevenue || 0), 0);
+
+  const monthOptions = useMemo(() => {
+    if (availableMonths.length > 0) return availableMonths;
+    return ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  }, [availableMonths]);
+
+  const yearOptions = useMemo(() => {
+    if (availableYears.length > 0) return availableYears;
+    return [2569, 2568, 2567];
+  }, [availableYears]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -266,10 +302,7 @@ export default function MarketingBillingPage() {
                   className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">ทุกเดือน</option>
-                  {(availableMonths.length > 0
-                    ? availableMonths
-                    : ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-                  ).map((m) => (
+                  {monthOptions.map((m) => (
                     <option key={m} value={m}>
                       เดือน {m}
                     </option>
@@ -282,8 +315,8 @@ export default function MarketingBillingPage() {
                   className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">ทุกปี</option>
-                  {(availableYears.length > 0 ? availableYears : [2569, 2568, 2567]).map((y) => (
-                    <option key={y} value={y}>
+                  {yearOptions.map((y) => (
+                    <option key={y} value={String(y)}>
                       ปี พ.ศ. {y}
                     </option>
                   ))}
@@ -299,8 +332,8 @@ export default function MarketingBillingPage() {
                 className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">ทุกปี</option>
-                {(availableYears.length > 0 ? availableYears : [2569, 2568, 2567]).map((y) => (
-                  <option key={y} value={y}>
+                {yearOptions.map((y) => (
+                  <option key={y} value={String(y)}>
                     ปี พ.ศ. {y}
                   </option>
                 ))}
