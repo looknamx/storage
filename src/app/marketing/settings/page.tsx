@@ -18,7 +18,7 @@ import { formatDate } from '@/lib/utils';
 
 export default function MarketingSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({
-    company_name: 'บริษัท ไทยฟลีท ทรานสปอร์ต จำกัด',
+    company_name: 'บริษัท เฮียเชาว์ จำกัด (iHereCHOW Co.,Ltd)',
     contact_phone: '02-123-4567',
     currency_symbol: '฿',
     auto_backup_enabled: 'false',

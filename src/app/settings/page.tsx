@@ -25,7 +25,7 @@ import { formatDate } from '@/lib/utils'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({
-    company_name: 'บริษัท ไทยฟลีท ทรานสปอร์ต จำกัด',
+    company_name: 'บริษัท เฮียเชาว์ จำกัด (iHereCHOW Co.,Ltd)',
     pincode_program_a: '1234',
     pincode_program_b: '1234',
     default_advance_days: '30',

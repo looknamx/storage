@@ -381,7 +381,7 @@ async function main() {
   // 10. Settings
   await prisma.appSetting.createMany({
     data: [
-      { key: 'company_name', value: 'บริษัท ไทยฟลีท ทรานสปอร์ต จำกัด', label: 'ชื่อหน่วยงาน/บริษัท', group: 'general' },
+      { key: 'company_name', value: 'บริษัท เฮียเชาว์ จำกัด (iHereCHOW Co.,Ltd)', label: 'ชื่อหน่วยงาน/บริษัท', group: 'general' },
       { key: 'default_advance_days', value: '30', label: 'แจ้งเตือนซ่อมบำรุงล่วงหน้า (วัน)', group: 'maintenance' },
       { key: 'default_advance_km', value: '1000', label: 'แจ้งเตือนซ่อมบำรุงล่วงหน้า (กิโลเมตร)', group: 'maintenance' },
     ],
