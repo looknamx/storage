@@ -18,6 +18,9 @@ import {
   Pencil,
   X,
   Save,
+  Banknote,
+  Landmark,
+  FileCheck,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -44,6 +47,8 @@ export default function MarketingBillingPage() {
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
   const [modalIsPaid, setModalIsPaid] = useState<boolean>(false);
   const [modalPaymentDate, setModalPaymentDate] = useState<string>('');
+  const [modalPaymentMethods, setModalPaymentMethods] = useState<string[]>([]); // 'เงินสด', 'เงินโอน', 'เช็คเงินสด'
+  const [modalPaymentNote, setModalPaymentNote] = useState<string>('');
   const [isSavingStatus, setIsSavingStatus] = useState<boolean>(false);
 
   const fetchInvoices = async () => {
@@ -106,7 +111,9 @@ export default function MarketingBillingPage() {
   const updateInvoiceStatus = async (
     invoiceNo: string,
     newPaid: boolean,
-    paymentDate?: string | null
+    paymentDate?: string | null,
+    paymentMethod?: string | null,
+    paymentNote?: string | null
   ) => {
     // Optimistic UI update
     setInvoices((prev) =>
@@ -116,6 +123,8 @@ export default function MarketingBillingPage() {
               ...item,
               isPaid: newPaid,
               paymentDate: newPaid ? (paymentDate || new Date().toISOString()) : null,
+              paymentMethod: newPaid ? paymentMethod : null,
+              paymentNote: newPaid ? paymentNote : null,
             }
           : item
       )
@@ -130,6 +139,8 @@ export default function MarketingBillingPage() {
           invoiceNo,
           isPaid: newPaid,
           paymentDate: newPaid ? (paymentDate || new Date().toISOString()) : null,
+          paymentMethod: newPaid ? paymentMethod : null,
+          paymentNote: newPaid ? paymentNote : null,
         }),
       });
 
@@ -153,6 +164,33 @@ export default function MarketingBillingPage() {
         ? new Date(inv.paymentDate).toISOString().split('T')[0]
         : new Date().toISOString().split('T')[0]
     );
+
+    // Extract payment methods
+    const existingMethods: string[] = [];
+    const rawMethod = String(inv.paymentMethod || '').trim();
+    if (rawMethod.includes('เงินสด') && !rawMethod.includes('เช็คเงินสด')) {
+      existingMethods.push('เงินสด');
+    }
+    if (rawMethod.includes('เงินโอน')) {
+      existingMethods.push('เงินโอน');
+    }
+    if (rawMethod.includes('เช็ค')) {
+      existingMethods.push('เช็คเงินสด');
+    }
+    if (rawMethod && existingMethods.length === 0) {
+      existingMethods.push(rawMethod);
+    }
+    setModalPaymentMethods(existingMethods);
+    setModalPaymentNote(inv.paymentNote || '');
+  };
+
+  const handleTogglePaymentMethod = (method: string) => {
+    if (!modalIsPaid) {
+      setModalIsPaid(true);
+    }
+    setModalPaymentMethods((prev) =>
+      prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
+    );
   };
 
   const handleSaveModalStatus = async (e: React.FormEvent) => {
@@ -160,10 +198,13 @@ export default function MarketingBillingPage() {
     if (!editingInvoice) return;
     try {
       setIsSavingStatus(true);
+      const methodStr = modalPaymentMethods.join(', ');
       await updateInvoiceStatus(
         editingInvoice.invoiceNo,
         modalIsPaid,
-        modalIsPaid ? modalPaymentDate : null
+        modalIsPaid ? modalPaymentDate : null,
+        modalIsPaid ? methodStr : null,
+        modalIsPaid ? modalPaymentNote : null
       );
       setEditingInvoice(null);
     } finally {
@@ -616,10 +657,27 @@ export default function MarketingBillingPage() {
                         </button>
                       </div>
 
-                      {/* Display payment date if available */}
-                      {inv.isPaid && inv.paymentDate && (
-                        <div className="text-[10px] text-gray-400 mt-1 font-medium">
-                          ชำระ: {formatDate(inv.paymentDate)}
+                      {/* Display payment date, method & note if available */}
+                      {inv.isPaid && (
+                        <div className="mt-1 flex flex-col items-center gap-0.5">
+                          {inv.paymentDate && (
+                            <div className="text-[10px] text-gray-500 font-medium">
+                              ชำระ: {formatDate(inv.paymentDate)}
+                            </div>
+                          )}
+                          {inv.paymentMethod && (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100/70 text-emerald-800 border border-emerald-200">
+                              {inv.paymentMethod}
+                            </span>
+                          )}
+                          {inv.paymentNote && (
+                            <span
+                              className="text-[10px] text-gray-400 line-clamp-1 max-w-[150px] cursor-help"
+                              title={`หมายเหตุการจ่ายเงิน: ${inv.paymentNote}`}
+                            >
+                              📝 {inv.paymentNote}
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -740,28 +798,81 @@ export default function MarketingBillingPage() {
                 </div>
               </div>
 
-              {/* Payment Date input if Paid */}
+              {/* Payment Details if Paid */}
               {modalIsPaid && (
-                <div className="space-y-1.5 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between">
-                    <label className="font-semibold text-gray-700">
-                      วันที่รับชำระเงิน *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setModalPaymentDate(new Date().toISOString().split('T')[0])}
-                      className="text-[11px] text-purple-600 hover:underline font-semibold"
-                    >
-                      เลือกวันนี้
-                    </button>
+                <div className="space-y-3.5 animate-in fade-in duration-150 pt-1">
+                  {/* Payment Date input */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="font-semibold text-gray-700">
+                        วันที่รับชำระเงิน *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setModalPaymentDate(new Date().toISOString().split('T')[0])}
+                        className="text-[11px] text-purple-600 hover:underline font-semibold"
+                      >
+                        เลือกวันนี้
+                      </button>
+                    </div>
+                    <input
+                      type="date"
+                      required={modalIsPaid}
+                      value={modalPaymentDate}
+                      onChange={(e) => setModalPaymentDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-purple-500 bg-white text-gray-800"
+                    />
                   </div>
-                  <input
-                    type="date"
-                    required={modalIsPaid}
-                    value={modalPaymentDate}
-                    onChange={(e) => setModalPaymentDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-purple-500 bg-white text-gray-800"
-                  />
+
+                  {/* Payment Method Checkboxes: เงินสด , เงินโอน , เช็คเงินสด */}
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-gray-700 block">
+                      วิธีการรับชำระเงิน (Check Box เลือกได้)
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'เงินสด', label: 'เงินสด', icon: Banknote },
+                        { id: 'เงินโอน', label: 'เงินโอน', icon: Landmark },
+                        { id: 'เช็คเงินสด', label: 'เช็คเงินสด', icon: FileCheck },
+                      ].map((item) => {
+                        const isChecked = modalPaymentMethods.includes(item.id);
+                        const Icon = item.icon;
+                        return (
+                          <label
+                            key={item.id}
+                            className={`flex items-center gap-1.5 p-2 rounded-xl border cursor-pointer select-none transition-all ${
+                              isChecked
+                                ? 'bg-purple-50 border-purple-500 text-purple-900 font-bold ring-2 ring-purple-500/20'
+                                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 font-medium'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleTogglePaymentMethod(item.id)}
+                              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                            />
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isChecked ? 'text-purple-600' : 'text-gray-400'}`} />
+                            <span className="text-xs truncate">{item.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Payment Note (ช่องรายการเพิ่มเติมด้านล่างเอาไว้ note เกี่ยวกับการจ่ายเงิน) */}
+                  <div className="space-y-1">
+                    <label className="font-semibold text-gray-700 block">
+                      บันทึกเพิ่มเติมเกี่ยวกับการจ่ายเงิน (Note)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={modalPaymentNote}
+                      onChange={(e) => setModalPaymentNote(e.target.value)}
+                      placeholder="ระบุข้อมูลเพิ่มเติม เช่น โอนเข้า บช. กสิกรไทย, เช็คธนาคารกรุงเทพ เลขที่..., วันที่นัดเคลียร์ ฯลฯ"
+                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-purple-500 bg-white text-gray-800 resize-none placeholder:text-gray-400"
+                    />
+                  </div>
                 </div>
               )}
 

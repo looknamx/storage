@@ -123,6 +123,8 @@ export async function PUT(
         jobOrderNo: body.jobOrderNo || null,
         isPaid: Boolean(body.isPaid),
         paymentDate: body.paymentDate ? new Date(body.paymentDate) : null,
+        paymentMethod: body.paymentMethod !== undefined ? (body.paymentMethod ? String(body.paymentMethod).trim() : null) : undefined,
+        paymentNote: body.paymentNote !== undefined ? (body.paymentNote ? String(body.paymentNote).trim() : null) : undefined,
         isSubcontractor: Boolean(body.isSubcontractor),
         vehicleType: body.vehicleType || 'รถพ่วง/เทรลเลอร์',
         licensePlate: body.licensePlate?.trim() || 'ไม่ระบุ',

@@ -389,6 +389,8 @@ model TransportJob {
   jobOrderNo      String?   // Job Order
   isPaid          Boolean   @default(false) // รับชำระแล้ว
   paymentDate     DateTime? // วันที่รับชำระ
+  paymentMethod   String?   // วิธีการชำระเงิน เช่น เงินสด, เงินโอน, เช็คเงินสด
+  paymentNote     String?   // บันทึก/หมายเหตุเกี่ยวกับการจ่ายเงิน
 
   // รถและคนขับ
   isSubcontractor Boolean   @default(false) // รถร่วม (true = รถร่วม, false = รถบริษัท)

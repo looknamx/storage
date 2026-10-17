@@ -101,6 +101,8 @@ export async function GET(req: NextRequest) {
           totalNetRevenue: 0,
           isPaid: job.isPaid,
           paymentDate: job.paymentDate,
+          paymentMethod: job.paymentMethod || null,
+          paymentNote: job.paymentNote || null,
         };
       }
       invoiceGroups[inv].jobsCount += 1;
@@ -110,6 +112,8 @@ export async function GET(req: NextRequest) {
       if (job.isPaid) {
         invoiceGroups[inv].isPaid = true;
         invoiceGroups[inv].paymentDate = job.paymentDate;
+        if (job.paymentMethod) invoiceGroups[inv].paymentMethod = job.paymentMethod;
+        if (job.paymentNote) invoiceGroups[inv].paymentNote = job.paymentNote;
       }
     }
 
@@ -186,7 +190,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { invoiceNo, isPaid, paymentDate } = await req.json();
+    const { invoiceNo, isPaid, paymentDate, paymentMethod, paymentNote } = await req.json();
     if (!invoiceNo) {
       return NextResponse.json({ error: 'Invoice number is required' }, { status: 400 });
     }
@@ -203,6 +207,8 @@ export async function PUT(req: NextRequest) {
       data: {
         isPaid: Boolean(isPaid),
         paymentDate: isPaid && paymentDate ? new Date(paymentDate) : isPaid ? new Date() : null,
+        paymentMethod: isPaid ? (paymentMethod ? String(paymentMethod).trim() : null) : null,
+        paymentNote: isPaid ? (paymentNote ? String(paymentNote).trim() : null) : null,
       },
     });
 

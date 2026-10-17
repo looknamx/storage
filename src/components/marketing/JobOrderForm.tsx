@@ -43,6 +43,19 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
   const [jobOrderNo, setJobOrderNo] = useState<string>(initialData?.jobOrderNo || '');
   const [isApproved, setIsApproved] = useState<boolean>(Boolean(initialData?.isApproved));
   const [isPaid, setIsPaid] = useState<boolean>(Boolean(initialData?.isPaid));
+  const [paymentDate, setPaymentDate] = useState<string>(
+    initialData?.paymentDate ? initialData.paymentDate.split('T')[0] : ''
+  );
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(() => {
+    const raw = String(initialData?.paymentMethod || '').trim();
+    const arr: string[] = [];
+    if (raw.includes('เงินสด') && !raw.includes('เช็คเงินสด')) arr.push('เงินสด');
+    if (raw.includes('เงินโอน')) arr.push('เงินโอน');
+    if (raw.includes('เช็ค')) arr.push('เช็คเงินสด');
+    if (raw && arr.length === 0) arr.push(raw);
+    return arr;
+  });
+  const [paymentNote, setPaymentNote] = useState<string>(initialData?.paymentNote || '');
 
   // Vehicle & driver
   const [isSubcontractor, setIsSubcontractor] = useState<boolean>(Boolean(initialData?.isSubcontractor));
@@ -222,6 +235,9 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
         vehicleId: matchedCompanyVehicle?.id || initialData?.vehicleId || null,
         isApproved,
         isPaid,
+        paymentDate: isPaid && paymentDate ? new Date(paymentDate) : null,
+        paymentMethod: isPaid ? (paymentMethods.length > 0 ? paymentMethods.join(', ') : null) : null,
+        paymentNote: isPaid ? (paymentNote.trim() || null) : null,
         isSubcontractor,
         vehicleType,
         licensePlate: licensePlate.trim(),
@@ -414,6 +430,91 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
               placeholder="เลือกวันที่วางบิล"
             />
           </div>
+        </div>
+
+        {/* Payment Status & Details */}
+        <div className="pt-3 border-t border-gray-100 space-y-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isPaid}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsPaid(checked);
+                  if (checked && !paymentDate) {
+                    setPaymentDate(new Date().toISOString().split('T')[0]);
+                  }
+                }}
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-gray-800">
+                รับชำระเงินแล้ว (Paid)
+              </span>
+            </label>
+
+            {isPaid && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">วันที่รับชำระ:</span>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white"
+                />
+              </div>
+            )}
+          </div>
+
+          {isPaid && (
+            <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100 space-y-3 animate-in fade-in duration-150">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold text-gray-700">วิธีการรับชำระ:</span>
+                {[
+                  { id: 'เงินสด', label: 'เงินสด' },
+                  { id: 'เงินโอน', label: 'เงินโอน' },
+                  { id: 'เช็คเงินสด', label: 'เช็คเงินสด' },
+                ].map((item) => {
+                  const isChecked = paymentMethods.includes(item.id);
+                  return (
+                    <label
+                      key={item.id}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition-all ${
+                        isChecked
+                          ? 'bg-purple-100/80 border-purple-500 text-purple-900 font-bold ring-1 ring-purple-500/20'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setPaymentMethods((prev) =>
+                            prev.includes(item.id) ? prev.filter((m) => m !== item.id) : [...prev, item.id]
+                          );
+                        }}
+                        className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  บันทึกเพิ่มเติมเกี่ยวกับการจ่ายเงิน (Note)
+                </label>
+                <input
+                  type="text"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  placeholder="ระบุข้อมูลเพิ่มเติม เช่น โอนเข้า บช. กสิกรไทย, เช็คเลขที่..., วันที่นัดเคลียร์ ฯลฯ"
+                  className="w-full px-3 py-1.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-purple-500 bg-white placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

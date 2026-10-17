@@ -258,6 +258,8 @@ export async function POST(req: NextRequest) {
         jobOrderNo: body.jobOrderNo || null,
         isPaid: Boolean(body.isPaid),
         paymentDate: body.paymentDate ? new Date(body.paymentDate) : null,
+        paymentMethod: body.paymentMethod ? String(body.paymentMethod).trim() : null,
+        paymentNote: body.paymentNote ? String(body.paymentNote).trim() : null,
         isSubcontractor: Boolean(body.isSubcontractor),
         vehicleType: body.vehicleType || 'รถพ่วง/เทรลเลอร์',
         licensePlate: body.licensePlate?.trim() || 'ไม่ระบุ',
