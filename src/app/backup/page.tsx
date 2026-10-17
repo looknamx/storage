@@ -18,6 +18,7 @@ import {
   Laptop,
   FileUp,
   Check,
+  Trash2,
 } from 'lucide-react'
 import { formatDate, formatDateTime } from '@/lib/utils'
 
@@ -30,6 +31,12 @@ export default function BackupPage() {
   const [backingUpCloud, setBackingUpCloud] = useState(false)
   const [backingUpDownload, setBackingUpDownload] = useState(false)
   const [restoring, setRestoring] = useState(false)
+
+  // Scope Filter & Deletion
+  const [fileFilter, setFileFilter] = useState<'maintenance' | 'all'>('maintenance')
+  const [selectedBackupForDelete, setSelectedBackupForDelete] = useState<any>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Messages
   const [errorMessage, setErrorMessage] = useState('')
@@ -46,10 +53,11 @@ export default function BackupPage() {
   const [parsingJson, setParsingJson] = useState(false)
   const [isJsonRestoreModalOpen, setIsJsonRestoreModalOpen] = useState(false)
 
-  const fetchBackups = async () => {
+  const fetchBackups = async (filter = fileFilter) => {
     try {
       setLoading(true)
-      const res = await fetch('/api/backup')
+      const url = filter === 'all' ? '/api/backup' : '/api/backup?scope=maintenance'
+      const res = await fetch(url)
       const data = await res.json()
       setBackups(data.backups || [])
       setLastBackup(data.lastBackup || null)
@@ -76,7 +84,7 @@ export default function BackupPage() {
       const res = await fetch('/api/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Cloud/Server Snapshot' }),
+        body: JSON.stringify({ reason: 'Maintenance Server Snapshot', scope: 'maintenance' }),
       })
       const data = await res.json()
 
@@ -106,7 +114,7 @@ export default function BackupPage() {
       const res = await fetch('/api/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Direct Download Snapshot' }),
+        body: JSON.stringify({ reason: 'Maintenance Direct Download Snapshot', scope: 'maintenance' }),
       })
       const data = await res.json()
 
@@ -264,6 +272,36 @@ export default function BackupPage() {
       setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการกู้คืน')
     } finally {
       setRestoring(false)
+    }
+  }
+
+  // Execute delete from server file
+  const handleDeleteServerBackup = async () => {
+    if (!selectedBackupForDelete) return
+    try {
+      setDeleting(true)
+      setErrorMessage('')
+      setSuccessMessage('')
+
+      const res = await fetch(
+        `/api/backup?filename=${encodeURIComponent(selectedBackupForDelete.filename)}`,
+        { method: 'DELETE' }
+      )
+      const data = await res.json()
+
+      if (!res.ok) {
+        setErrorMessage(data.error || 'ไม่สามารถลบไฟล์สำรองข้อมูลได้')
+        return
+      }
+
+      setSuccessMessage(data.message || `ลบไฟล์ "${selectedBackupForDelete.filename}" สำเร็จ`)
+      setIsDeleteModalOpen(false)
+      setSelectedBackupForDelete(null)
+      fetchBackups()
+    } catch (err: any) {
+      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการลบไฟล์')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -524,20 +562,62 @@ export default function BackupPage() {
 
       {/* Backup Files Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <FileCheck className="h-4 w-4 text-slate-600" />
-            <h3 className="font-bold text-slate-800 text-sm">
-              รายการไฟล์สำรองข้อมูลบนระบบ ({backups.length} ไฟล์)
-            </h3>
+            <FileCheck className="h-4 w-4 text-emerald-600" />
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">
+                รายการไฟล์สำรองข้อมูลบนระบบ ({backups.length} ไฟล์)
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {fileFilter === 'maintenance'
+                  ? 'แสดงเฉพาะไฟล์สำรอง (JSON) ของระบบแผนงานซ่อมบำรุง'
+                  : 'แสดงไฟล์สำรองข้อมูลทั้งหมดในโฟลเดอร์ /backups'}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={fetchBackups}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
-            title="รีเฟรช"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Filter Tabs */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setFileFilter('maintenance')
+                  fetchBackups('maintenance')
+                }}
+                className={`px-3 py-1 rounded-lg font-semibold transition ${
+                  fileFilter === 'maintenance'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                เฉพาะไฟล์ซ่อมบำรุง
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFileFilter('all')
+                  fetchBackups('all')
+                }}
+                className={`px-3 py-1 rounded-lg font-semibold transition ${
+                  fileFilter === 'all'
+                    ? 'bg-white text-emerald-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                ไฟล์ทั้งหมด
+              </button>
+            </div>
+
+            <button
+              onClick={() => fetchBackups()}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+              title="รีเฟรช"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -546,6 +626,7 @@ export default function BackupPage() {
               <tr>
                 <th className="px-6 py-3.5">รูปแบบ</th>
                 <th className="px-6 py-3.5">ชื่อไฟล์สำรอง</th>
+                <th className="px-6 py-3.5">ระบบงาน</th>
                 <th className="px-6 py-3.5">ขนาดไฟล์</th>
                 <th className="px-6 py-3.5">วันที่และเวลาที่สำรอง</th>
                 <th className="px-6 py-3.5 text-right">การจัดการ</th>
@@ -554,13 +635,13 @@ export default function BackupPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
+                  <td colSpan={6} className="p-8 text-center text-slate-400">
                     กำลังโหลดข้อมูลไฟล์สำรอง...
                   </td>
                 </tr>
               ) : backups.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-slate-400">
+                  <td colSpan={6} className="p-12 text-center text-slate-400">
                     ยังไม่มีไฟล์สำรองข้อมูลในโฟลเดอร์ /backups
                   </td>
                 </tr>
@@ -570,20 +651,25 @@ export default function BackupPage() {
                     <td className="px-6 py-4">
                       {bk.isJson ? (
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-bold rounded-md text-[10px]">
-                          JSON
+                          JSON Snapshot
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold rounded-md text-[10px]">
-                          SQLITE
+                          SQLITE DB
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4 font-mono font-medium text-slate-800 break-all">
                       {bk.filename}
                     </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {bk.scopeLabel || 'แผนงานซ่อมบำรุง'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 font-medium text-slate-700">{bk.sizeFormatted}</td>
                     <td className="px-6 py-4 text-slate-500">{formatDateTime(bk.createdAt)}</td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       {/* Download to PC */}
                       <a
                         href={`/api/backup/download?filename=${encodeURIComponent(bk.filename)}`}
@@ -608,6 +694,19 @@ export default function BackupPage() {
                         <Upload className="h-3.5 w-3.5" />
                         กู้คืนไฟล์นี้
                       </button>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => {
+                          setSelectedBackupForDelete(bk)
+                          setIsDeleteModalOpen(true)
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition"
+                        title="ลบไฟล์สำรองนี้ออกจากระบบ"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        ลบ
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -616,6 +715,67 @@ export default function BackupPage() {
           </table>
         </div>
       </div>
+
+      {/* Confirmation Modal for Server File Deletion */}
+      {isDeleteModalOpen && selectedBackupForDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 border-b pb-3">
+              <div className="p-2.5 bg-rose-100 rounded-xl">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">ยืนยันการลบไฟล์สำรองข้อมูล</h3>
+                <p className="text-xs text-slate-400">Delete Server Backup File</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+              <div>
+                ไฟล์ที่จะถูกลบ:{' '}
+                <strong className="font-mono text-slate-800">
+                  {selectedBackupForDelete.filename}
+                </strong>
+              </div>
+              <div>
+                ขนาดไฟล์: <strong>{selectedBackupForDelete.sizeFormatted}</strong>
+              </div>
+              <div className="text-rose-700 pt-1 font-medium leading-relaxed">
+                ⚠️ เมื่อลบแล้วไฟล์นี้จะถูกนำออกจากพื้นที่จัดเก็บของเซิร์ฟเวอร์อย่างถาวรและไม่สามารถกู้คืนได้
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={deleting}
+                className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs hover:bg-slate-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteServerBackup}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    กำลังลบไฟล์...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    ยืนยันลบไฟล์
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal for Server File Restore */}
       {isRestoreModalOpen && selectedBackupForRestore && (

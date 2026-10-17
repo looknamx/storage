@@ -6,8 +6,11 @@ import prisma from '@/lib/prisma'
 const DB_PATH = path.join(process.cwd(), 'data', 'storage.db')
 const BACKUP_DIR = path.join(process.cwd(), 'backups')
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const scope = searchParams.get('scope') // 'maintenance' | 'marketing' | 'procurement' | 'all'
+    const onlyJson = searchParams.get('onlyJson') === 'true'
     const isPostgres = process.env.DATABASE_URL?.startsWith('postgres')
 
     let backups: any[] = []
@@ -42,9 +45,31 @@ export async function GET() {
             }
           }
 
+          let fileScope = 'maintenance'
+          let scopeLabel = 'แผนงานซ่อมบำรุง'
+          if (file.startsWith('marketing_')) {
+            fileScope = 'marketing'
+            scopeLabel = 'แผนงานการตลาด'
+          } else if (file.startsWith('procurement_')) {
+            fileScope = 'procurement'
+            scopeLabel = 'แผนงานฝ่ายจัดซื้อ'
+          } else if (file.startsWith('maintenance_')) {
+            fileScope = 'maintenance'
+            scopeLabel = 'แผนงานซ่อมบำรุง'
+          } else if (file.startsWith('cloud_')) {
+            fileScope = 'maintenance'
+            scopeLabel = 'แผนงานซ่อมบำรุง'
+          } else if (file.startsWith('storage_') || file.startsWith('fleet_')) {
+            fileScope = 'maintenance'
+            scopeLabel = 'แผนงานซ่อมบำรุง'
+          }
+
           return {
             filename: file,
             isJson: file.endsWith('.json'),
+            format: file.endsWith('.json') ? 'JSON' : 'SQLITE',
+            scope: fileScope,
+            scopeLabel,
             sizeBytes: stats.size,
             sizeFormatted:
               stats.size > 1024 * 1024
@@ -55,6 +80,16 @@ export async function GET() {
           }
         })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      // Filter by scope if specified
+      if (scope && scope !== 'all') {
+        backups = backups.filter((b) => b.scope === scope)
+      }
+
+      // Filter by JSON only if requested
+      if (onlyJson) {
+        backups = backups.filter((b) => b.isJson)
+      }
 
       lastBackup = backups[0] || null
     }
@@ -205,6 +240,8 @@ export async function POST(request: Request) {
         ? `marketing_backup_${timestamp}.json`
         : scope === 'procurement'
         ? `procurement_backup_${timestamp}.json`
+        : scope === 'maintenance'
+        ? `maintenance_backup_${timestamp}.json`
         : isPostgres
         ? `cloud_backup_${timestamp}.json`
         : `storage_backup_${timestamp}.json`
@@ -241,6 +278,37 @@ export async function POST(request: Request) {
     console.error('Backup creation error:', error)
     return NextResponse.json(
       { error: error.message || 'เกิดข้อผิดพลาดในการสร้างไฟล์สำรองข้อมูล' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const filename = searchParams.get('filename')
+
+    if (!filename) {
+      return NextResponse.json({ error: 'กรุณาระบุชื่อไฟล์ที่ต้องการลบ' }, { status: 400 })
+    }
+
+    const safeName = path.basename(filename)
+    const filePath = path.join(BACKUP_DIR, safeName)
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: 'ไม่พบไฟล์สำรองข้อมูลที่ต้องการลบ' }, { status: 404 })
+    }
+
+    fs.unlinkSync(filePath)
+
+    return NextResponse.json({
+      success: true,
+      message: `ลบไฟล์สำรองข้อมูล "${safeName}" สำเร็จเรียบร้อยแล้ว`,
+    })
+  } catch (error: any) {
+    console.error('Delete backup error:', error)
+    return NextResponse.json(
+      { error: error.message || 'เกิดข้อผิดพลาดในการลบไฟล์สำรองข้อมูล' },
       { status: 500 }
     )
   }

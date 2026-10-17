@@ -18,6 +18,7 @@ import {
   FileUp,
   Check,
   TrendingUp,
+  Trash2,
 } from 'lucide-react';
 import { formatDate, formatDateTime } from '@/lib/utils';
 
@@ -30,6 +31,12 @@ export default function MarketingBackupPage() {
   const [backingUpCloud, setBackingUpCloud] = useState(false);
   const [backingUpDownload, setBackingUpDownload] = useState(false);
   const [restoring, setRestoring] = useState(false);
+
+  // Scope Filter & Deletion
+  const [fileFilter, setFileFilter] = useState<'marketing' | 'all'>('marketing');
+  const [selectedBackupForDelete, setSelectedBackupForDelete] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Messages
   const [errorMessage, setErrorMessage] = useState('');
@@ -46,10 +53,11 @@ export default function MarketingBackupPage() {
   const [parsingJson, setParsingJson] = useState(false);
   const [isJsonRestoreModalOpen, setIsJsonRestoreModalOpen] = useState(false);
 
-  const fetchBackups = async () => {
+  const fetchBackups = async (filter = fileFilter) => {
     try {
       setLoading(true);
-      const res = await fetch('/api/backup');
+      const url = filter === 'all' ? '/api/backup' : '/api/backup?scope=marketing';
+      const res = await fetch(url);
       const data = await res.json();
       setBackups(data.backups || []);
       setLastBackup(data.lastBackup || null);
@@ -268,6 +276,36 @@ export default function MarketingBackupPage() {
     }
   };
 
+  // Execute delete from server file
+  const handleDeleteServerBackup = async () => {
+    if (!selectedBackupForDelete) return;
+    try {
+      setDeleting(true);
+      setErrorMessage('');
+      setSuccessMessage('');
+
+      const res = await fetch(
+        `/api/backup?filename=${encodeURIComponent(selectedBackupForDelete.filename)}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMessage(data.error || 'ไม่สามารถลบไฟล์สำรองข้อมูลได้');
+        return;
+      }
+
+      setSuccessMessage(data.message || `ลบไฟล์ "${selectedBackupForDelete.filename}" สำเร็จ`);
+      setIsDeleteModalOpen(false);
+      setSelectedBackupForDelete(null);
+      fetchBackups();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการลบไฟล์');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -287,7 +325,7 @@ export default function MarketingBackupPage() {
         </div>
 
         <button
-          onClick={fetchBackups}
+          onClick={() => fetchBackups()}
           disabled={loading}
           className="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
         >
@@ -448,10 +486,53 @@ export default function MarketingBackupPage() {
               ประวัติและไฟล์สำรองข้อมูลบนระบบ (Server Backup Files)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              ไฟล์สำรองข้อมูลที่ถูกสร้างและจัดเก็บไว้บนพื้นที่ระบบ ({backups.length} ไฟล์)
+              {fileFilter === 'marketing'
+                ? `แสดงเฉพาะไฟล์สำรอง (JSON) ของฝ่ายการตลาด (${backups.length} ไฟล์)`
+                : `ไฟล์สำรองข้อมูลทั้งหมดในระบบ (${backups.length} ไฟล์)`}
             </p>
           </div>
-          <span className="text-xs text-slate-400">ฐานข้อมูล: {dbPath}</span>
+
+          <div className="flex items-center gap-2">
+            {/* Filter Tabs */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setFileFilter('marketing');
+                  fetchBackups('marketing');
+                }}
+                className={`px-3 py-1 rounded-lg font-semibold transition ${
+                  fileFilter === 'marketing'
+                    ? 'bg-white text-purple-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                เฉพาะไฟล์การตลาด
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFileFilter('all');
+                  fetchBackups('all');
+                }}
+                className={`px-3 py-1 rounded-lg font-semibold transition ${
+                  fileFilter === 'all'
+                    ? 'bg-white text-purple-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                ไฟล์ทั้งหมด
+              </button>
+            </div>
+
+            <button
+              onClick={() => fetchBackups()}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+              title="รีเฟรช"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {backups.length === 0 ? (
@@ -466,6 +547,7 @@ export default function MarketingBackupPage() {
                 <tr>
                   <th className="px-5 py-3 font-semibold">ชื่อไฟล์</th>
                   <th className="px-4 py-3 font-semibold">ประเภท</th>
+                  <th className="px-4 py-3 font-semibold">ระบบงาน</th>
                   <th className="px-4 py-3 font-semibold">ขนาดไฟล์</th>
                   <th className="px-4 py-3 font-semibold">วันที่สำรอง</th>
                   <th className="px-5 py-3 font-semibold text-right">การจัดการ</th>
@@ -483,9 +565,14 @@ export default function MarketingBackupPage() {
                         {b.isJson ? 'JSON Snapshot' : 'Database DB'}
                       </span>
                     </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                        {b.scopeLabel || 'แผนงานการตลาด'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-slate-500">{b.sizeFormatted}</td>
                     <td className="px-4 py-3 text-slate-500">{formatDateTime(b.createdAt)}</td>
-                    <td className="px-5 py-3 text-right space-x-2">
+                    <td className="px-5 py-3 text-right space-x-2 whitespace-nowrap">
                       <a
                         href={`/api/backup/download?filename=${encodeURIComponent(b.filename)}`}
                         download
@@ -500,10 +587,22 @@ export default function MarketingBackupPage() {
                           setSelectedBackupForRestore(b);
                           setIsRestoreModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-50 rounded-lg transition"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
                         กู้คืนไฟล์นี้
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedBackupForDelete(b);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        title="ลบไฟล์สำรองนี้ออกจากระบบ"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        ลบ
                       </button>
                     </td>
                   </tr>
@@ -607,6 +706,62 @@ export default function MarketingBackupPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal: Delete Server Backup File */}
+      {isDeleteModalOpen && selectedBackupForDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl relative space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 border-b border-rose-100 pb-3">
+              <div className="p-2 bg-rose-100 rounded-xl">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">ยืนยันการลบไฟล์สำรองข้อมูล</h3>
+                <p className="text-xs text-slate-500">Delete Server Backup File</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-600 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div>
+                ไฟล์ที่จะถูกลบ:{' '}
+                <strong className="font-mono text-slate-800">
+                  {selectedBackupForDelete.filename}
+                </strong>
+              </div>
+              <div>
+                ขนาดไฟล์: <strong>{selectedBackupForDelete.sizeFormatted}</strong>
+              </div>
+              <div className="text-rose-700 pt-1 font-medium leading-relaxed">
+                ⚠️ เมื่อลบแล้วไฟล์นี้จะถูกนำออกจากพื้นที่จัดเก็บของเซิร์ฟเวอร์อย่างถาวรและไม่สามารถกู้คืนได้
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setSelectedBackupForDelete(null);
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteServerBackup}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 disabled:opacity-50"
+              >
+                {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deleting ? 'กำลังลบไฟล์...' : 'ยืนยันลบไฟล์'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
