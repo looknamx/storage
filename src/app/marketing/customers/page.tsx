@@ -92,18 +92,13 @@ export default function MarketingCustomersPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              ฐานข้อมูลลูกค้าการตลาด
-            </h1>
-            <p className="text-xs text-gray-500">
-              Marketing Customer Accounts & Shippers (ทั้งหมด {customers.length} ราย)
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            ฐานข้อมูลลูกค้าการตลาด
+          </h1>
+          <p className="text-xs text-gray-500">
+            Marketing Customer Accounts & Shippers (ทั้งหมด {customers.length} ราย)
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

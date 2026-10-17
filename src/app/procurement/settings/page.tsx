@@ -20,7 +20,6 @@ export default function ProcurementSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({
     company_name: 'บริษัท เฮียเชาว์ จำกัด (iHereCHOW Co.,Ltd)',
     contact_phone: '02-123-4567',
-    currency_symbol: '฿',
     auto_backup_enabled: 'false',
     auto_backup_interval_days: '7',
     last_auto_backup_date: '',
@@ -294,18 +293,6 @@ export default function ProcurementSettingsPage() {
                 type="text"
                 value={settings.contact_phone || ''}
                 onChange={(e) => setSettings({ ...settings, contact_phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                สัญลักษณ์สกุลเงิน
-              </label>
-              <input
-                type="text"
-                value={settings.currency_symbol || '฿'}
-                onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>

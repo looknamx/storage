@@ -247,18 +247,13 @@ export default function MarketingReportsPage() {
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
-            <BarChart3 className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              ศูนย์รายงานและส่งออกข้อมูล (Reports)
-            </h1>
-            <p className="text-xs text-gray-500">
-              รายงานสรุปผลการดำเนินงานขนส่ง กำไร-ขาดทุน การวางบิล การใช้น้ำมัน และส่งออก Excel / CSV
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            ศูนย์รายงานและส่งออกข้อมูล (Reports)
+          </h1>
+          <p className="text-xs text-gray-500">
+            รายงานสรุปผลการดำเนินงานขนส่ง กำไร-ขาดทุน การวางบิล การใช้น้ำมัน และส่งออก Excel / CSV
+          </p>
         </div>
 
         {/* Export Buttons */}

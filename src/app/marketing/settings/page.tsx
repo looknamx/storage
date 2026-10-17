@@ -166,16 +166,11 @@ export default function MarketingSettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl pb-12">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
-          <Settings className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h1>
-          <p className="text-xs text-gray-500">
-            ระบบแผนงานการตลาด: กำหนดข้อมูลหน่วยงาน การสำรองข้อมูลอัตโนมัติ และการส่งมอบโปรเจกต์
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h1>
+        <p className="text-xs text-gray-500">
+          ระบบแผนงานการตลาด: กำหนดข้อมูลหน่วยงาน การสำรองข้อมูลอัตโนมัติ และการส่งมอบโปรเจกต์
+        </p>
       </div>
 
       {/* Messages */}

@@ -106,18 +106,13 @@ export default function MarketingImportPage() {
   return (
     <div className="space-y-6 pb-12 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
-          <UploadCloud className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            นำเข้าข้อมูลงานขนส่ง (Import CSV / Excel)
-          </h1>
-          <p className="text-xs text-gray-500">
-            ระบบอัปโหลดไฟล์รายงานเที่ยววิ่งประจำเดือน รองรับหลายเดือนและแยกข้อมูลเดือนต่อเดือน
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          นำเข้าข้อมูลงานขนส่ง (Import CSV / Excel)
+        </h1>
+        <p className="text-xs text-gray-500">
+          ระบบอัปโหลดไฟล์รายงานเที่ยววิ่งประจำเดือน รองรับหลายเดือนและแยกข้อมูลเดือนต่อเดือน
+        </p>
       </div>
 
       {/* Error Message */}

@@ -144,19 +144,12 @@ export default function MarketingDashboardPage() {
       {/* Top Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-600">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                ภาพรวมแผนงานการตลาด & การเดินรถ
-              </h1>
-              <p className="text-xs text-gray-500">
-                Marketing & Transport Logistics Operations Dashboard
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            ภาพรวมแผนงานการตลาด & การเดินรถ
+          </h1>
+          <p className="text-xs text-gray-500">
+            Marketing & Transport Logistics Operations Dashboard
+          </p>
         </div>
 
         {/* Action Buttons */}
