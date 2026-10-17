@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import MarketingSidebar from '@/components/layout/MarketingSidebar';
+import ProcurementSidebar from '@/components/layout/ProcurementSidebar';
 import Topbar from '@/components/layout/Topbar';
 import AutoBackupRunner from '@/components/AutoBackupRunner';
 import { isProgramAuthenticated } from '@/lib/auth';
@@ -109,17 +110,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isProcurement) {
-    return (
-      <main className="min-h-screen w-full bg-slate-900">
-        {children}
-      </main>
-    );
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900">
-      {isMarketing ? (
+      {isProcurement ? (
+        <ProcurementSidebar
+          isOpen={sidebarOpen}
+          onClose={handleSidebarClose}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
+      ) : isMarketing ? (
         <MarketingSidebar
           isOpen={sidebarOpen}
           onClose={handleSidebarClose}
