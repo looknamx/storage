@@ -6,17 +6,63 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const reportType = searchParams.get('type') || 'vehicles'
-    const range = searchParams.get('range') || '1month'
+    const period = searchParams.get('period') || searchParams.get('range') || 'month'
+    const monthParam = searchParams.get('month') || ''
+    const yearParam = searchParams.get('year') || ''
+    const customStart = searchParams.get('startDate') || ''
+    const customEnd = searchParams.get('endDate') || ''
 
     const now = new Date()
-    let startDate: Date
+    let startDate: Date | null = null
+    let endDate: Date | null = null
 
-    if (range === '7days') startDate = startOfDay(subDays(now, 7))
-    else if (range === '6months') startDate = startOfDay(subMonths(now, 6))
-    else if (range === '1year') startDate = startOfDay(subYears(now, 1))
-    else startDate = startOfDay(subMonths(now, 1))
+    // Determine target year
+    let targetYear = now.getFullYear()
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam, 10)
+      targetYear = parsedYear > 2400 ? parsedYear - 543 : parsedYear
+    }
 
-    const endDate = endOfDay(now)
+    // Determine target month (1 - 12)
+    let targetMonth = now.getMonth() + 1
+    if (monthParam) {
+      const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+      const idx = thaiMonths.indexOf(monthParam)
+      if (idx !== -1) {
+        targetMonth = idx + 1
+      } else {
+        const parsedM = parseInt(monthParam, 10)
+        if (!isNaN(parsedM) && parsedM >= 1 && parsedM <= 12) {
+          targetMonth = parsedM
+        }
+      }
+    }
+
+    if (period === '7days') {
+      startDate = startOfDay(subDays(now, 7))
+      endDate = endOfDay(now)
+    } else if (period === 'month' || period === '1month') {
+      startDate = new Date(Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0))
+      endDate = new Date(Date.UTC(targetYear, targetMonth, 0, 23, 59, 59, 999))
+    } else if (period === 'year' || period === '1year') {
+      startDate = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0))
+      endDate = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
+    } else if (period === '6months') {
+      startDate = startOfDay(subMonths(now, 6))
+      endDate = endOfDay(now)
+    } else if (period === 'custom' && customStart && customEnd) {
+      startDate = startOfDay(new Date(customStart))
+      endDate = endOfDay(new Date(customEnd))
+    } else if (period === 'all') {
+      startDate = null
+      endDate = null
+    } else {
+      // Default fallback: 1 month
+      startDate = startOfDay(subMonths(now, 1))
+      endDate = endOfDay(now)
+    }
+
+    const dateFilter = startDate && endDate ? { gte: startDate, lte: endDate } : undefined
 
     let reportData: any = null
 
@@ -27,7 +73,10 @@ export async function GET(request: Request) {
           orderBy: { code: 'asc' },
           include: {
             _count: {
-              select: { repairOrders: true, partIssues: true },
+              select: {
+                repairOrders: dateFilter ? { where: { orderDate: dateFilter } } : true,
+                partIssues: dateFilter ? { where: { issueDate: dateFilter } } : true,
+              },
             },
           },
         })
@@ -41,8 +90,9 @@ export async function GET(request: Request) {
           แผนก: v.department || '-',
           ผู้ดูแล: v.responsiblePerson || '-',
           เลขไมล์ล่าสุด: v.currentMileage,
-          สถานะ: v.status,
+          สถานะ: v.status === 'active' ? 'พร้อมใช้งาน' : v.status === 'repairing' ? 'กำลังซ่อม' : v.status,
           จำนวนครั้งที่ซ่อม: v._count.repairOrders,
+          จำนวนครั้งที่เบิกอะไหล่: v._count.partIssues,
         }))
         break
       }
@@ -52,37 +102,40 @@ export async function GET(request: Request) {
         const vehicles = await prisma.vehicle.findMany({
           include: {
             repairOrders: {
-              where: { orderDate: { gte: startDate, lte: endDate } },
+              where: dateFilter ? { orderDate: dateFilter } : undefined,
             },
           },
         })
-        reportData = vehicles.map((v) => {
-          const totalCost = v.repairOrders.reduce((sum, r) => sum + r.totalCost, 0)
-          const partsCost = v.repairOrders.reduce((sum, r) => sum + r.partsCost, 0)
-          const laborCost = v.repairOrders.reduce((sum, r) => sum + r.laborCost, 0)
-          return {
-            รหัสรถ: v.code,
-            ทะเบียนรถ: v.licensePlate,
-            ยี่ห้อ: `${v.brand} ${v.model}`,
-            แผนก: v.department || '-',
-            จำนวนครั้งซ่อม: v.repairOrders.length,
-            ค่าแรงรวม: laborCost,
-            ค่าอะไหล่รวม: partsCost,
-            ค่าใช้จ่ายรวมทั้งสิ้น: totalCost,
-          }
-        })
+        reportData = vehicles
+          .map((v) => {
+            const totalCost = v.repairOrders.reduce((sum, r) => sum + r.totalCost, 0)
+            const partsCost = v.repairOrders.reduce((sum, r) => sum + r.partsCost, 0)
+            const laborCost = v.repairOrders.reduce((sum, r) => sum + r.laborCost, 0)
+            return {
+              รหัสรถ: v.code,
+              ทะเบียนรถ: v.licensePlate,
+              ยี่ห้อ: `${v.brand} ${v.model}`,
+              แผนก: v.department || '-',
+              จำนวนครั้งซ่อม: v.repairOrders.length,
+              ค่าแรงรวม: laborCost,
+              ค่าอะไหล่รวม: partsCost,
+              ค่าใช้จ่ายรวมทั้งสิ้น: totalCost,
+            }
+          })
+          .sort((a, b) => b.ค่าใช้จ่ายรวมทั้งสิ้น - a.ค่าใช้จ่ายรวมทั้งสิ้น)
         break
       }
 
       // 3. รายงานการใช้อะไหล่ตามทะเบียนรถ
       case 'parts_by_vehicle': {
         const issues = await prisma.partIssue.findMany({
-          where: { issueDate: { gte: startDate, lte: endDate } },
+          where: dateFilter ? { issueDate: dateFilter } : undefined,
           include: {
             vehicle: true,
             repairOrder: true,
             items: { include: { part: true } },
           },
+          orderBy: { issueDate: 'desc' },
         })
         const rows: any[] = []
         issues.forEach((iss) => {
@@ -91,7 +144,7 @@ export async function GET(request: Request) {
               เลขที่ใบเบิก: iss.issueNumber,
               วันที่เบิก: iss.issueDate.toISOString().split('T')[0],
               ทะเบียนรถ: iss.vehicle?.licensePlate || '-',
-              ยี่ห้อรถ: `${iss.vehicle?.brand || ''} ${iss.vehicle?.model || ''}`,
+              ยี่ห้อรถ: `${iss.vehicle?.brand || ''} ${iss.vehicle?.model || ''}`.trim() || '-',
               ใบงานซ่อม: iss.repairOrder?.orderNumber || '-',
               รหัสอะไหล่: it.part.code,
               ชื่ออะไหล่: it.part.name,
@@ -99,7 +152,7 @@ export async function GET(request: Request) {
               หน่วยนับ: it.part.unit,
               ราคาทุนต่อหน่วย: it.costPerUnit,
               มูลค่ารวม: it.totalCost,
-              ผู้เบิก: iss.issuedBy,
+              ผู้เบิก: iss.issuedBy || '-',
             })
           })
         })
@@ -137,7 +190,7 @@ export async function GET(request: Request) {
       // 5. รายงานรับเข้าและเบิกจ่าย
       case 'stock_movement': {
         const txs = await prisma.inventoryTransaction.findMany({
-          where: { transactionDate: { gte: startDate, lte: endDate } },
+          where: dateFilter ? { transactionDate: dateFilter } : undefined,
           include: { part: true },
           orderBy: { transactionDate: 'desc' },
         })
@@ -166,7 +219,6 @@ export async function GET(request: Request) {
       // 6. รายงานอะไหล่ใกล้หมด/หมดสต็อก
       case 'low_stock': {
         const parts = await prisma.part.findMany({
-          where: { quantity: { lte: prisma.part.fields.minimumStock as any } },
           include: { category: true },
         })
         reportData = parts
@@ -190,7 +242,11 @@ export async function GET(request: Request) {
       // 7. รายงานรถครบกำหนดบำรุงรักษา
       case 'maintenance_due': {
         const plans = await prisma.maintenancePlan.findMany({
-          where: { status: { in: ['upcoming', 'due', 'overdue'] }, isActive: true },
+          where: {
+            status: { in: ['upcoming', 'due', 'overdue'] },
+            isActive: true,
+            ...(dateFilter ? { nextDueDate: dateFilter } : {}),
+          },
           include: { vehicle: true },
           orderBy: { nextDueDate: 'asc' },
         })
@@ -215,7 +271,10 @@ export async function GET(request: Request) {
       // 8. รายงานงานซ่อมที่ค้างอยู่
       case 'pending_repairs': {
         const repairs = await prisma.repairOrder.findMany({
-          where: { status: { notIn: ['completed', 'delivered', 'cancelled'] } },
+          where: {
+            status: { notIn: ['completed', 'delivered', 'cancelled'] },
+            ...(dateFilter ? { orderDate: dateFilter } : {}),
+          },
           include: { vehicle: true },
           orderBy: { orderDate: 'asc' },
         })
@@ -237,12 +296,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       reportType,
+      period,
+      startDate: startDate ? startDate.toISOString() : null,
+      endDate: endDate ? endDate.toISOString() : null,
       rowCount: reportData?.length || 0,
       data: reportData,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Report API Error:', error)
-    return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการดึงรายงาน' }, { status: 500 })
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการดึงรายงาน', details: error.message }, { status: 500 })
   }
 }
-

@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
   Settings,
+  BarChart3,
 } from 'lucide-react';
 import { clearProgramAuth } from '@/lib/auth';
 
@@ -52,7 +53,7 @@ const menuGroups: MenuGroup[] = [
     id: 'finance',
     items: [
       { label: 'การวางบิลและรับชำระ', icon: Receipt, path: '/marketing/billing' },
-      { label: 'รายงานกำไร-ขาดทุน', icon: FileSpreadsheet, path: '/marketing/reports' },
+      { label: 'ศูนย์รายงานและส่งออก (Reports)', icon: BarChart3, path: '/marketing/reports' },
     ],
   },
   {
