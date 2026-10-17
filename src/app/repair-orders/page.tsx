@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Wrench,
   Plus,
@@ -17,6 +17,9 @@ import {
   DollarSign,
   Trash2,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -42,6 +45,25 @@ export default function RepairOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [yearFilter, setYearFilter] = useState('')
   const [monthFilter, setMonthFilter] = useState('')
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<string>('orderDate')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      let valA = a[sortBy] ?? ''
+      let valB = b[sortBy] ?? ''
+      if (typeof valA === 'number' || typeof valB === 'number') {
+        const numA = Number(valA) || 0
+        const numB = Number(valB) || 0
+        return sortOrder === 'asc' ? numA - numB : numB - numA
+      }
+      return sortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB), 'th')
+        : String(valB).localeCompare(String(valA), 'th')
+    })
+  }, [orders, sortBy, sortOrder])
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -297,6 +319,26 @@ export default function RepairOrdersPage() {
             ))}
           </select>
 
+          {/* Quick Sort Dropdown */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 ml-1">
+            <span>เรียงตาม:</span>
+            <select
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [sb, so] = e.target.value.split('_')
+                setSortBy(sb)
+                setSortOrder(so as 'asc' | 'desc')
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium focus:outline-blue-500 cursor-pointer"
+            >
+              <option value="orderDate_desc">วันที่เปิดใบงาน (ใหม่ล่าสุด)</option>
+              <option value="orderDate_asc">วันที่เปิดใบงาน (เก่าที่สุด)</option>
+              <option value="totalCost_desc">ค่าใช้จ่ายรวม: High to Low (มาก → น้อย)</option>
+              <option value="totalCost_asc">ค่าใช้จ่ายรวม: Low to High (น้อย → มาก)</option>
+              <option value="orderNumber_desc">เลขที่ใบงาน (ใหม่ → เก่า)</option>
+            </select>
+          </div>
+
           <Filter className="h-4 w-4 text-slate-400 shrink-0 ml-1" />
           {[
             { id: '', label: 'ทุกสถานะ' },
@@ -326,7 +368,7 @@ export default function RepairOrdersPage() {
         <div className="divide-y divide-slate-100">
           {loading ? (
             <div className="p-8 text-center text-xs text-slate-400">กำลังโหลดรายการใบงานซ่อม...</div>
-          ) : orders.length === 0 ? (
+          ) : sortedOrders.length === 0 ? (
             <div className="p-12 text-center">
               <Wrench className="h-8 w-8 text-slate-300 mx-auto mb-2" />
               <p className="text-slate-500 font-medium">ไม่พบรายการใบงานซ่อม</p>
@@ -335,7 +377,7 @@ export default function RepairOrdersPage() {
               </p>
             </div>
           ) : (
-            orders.map((ro) => (
+            sortedOrders.map((ro) => (
               <div key={ro.id} className="p-5 hover:bg-slate-50 transition">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">

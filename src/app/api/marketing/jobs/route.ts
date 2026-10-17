@@ -54,11 +54,33 @@ export async function GET(req: NextRequest) {
       where.isPaid = isPaid === 'true';
     }
 
+    const sortBy = searchParams.get('sortBy')?.trim() || 'itemNo';
+    const sortOrder = searchParams.get('sortOrder')?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+    const validSortFields = [
+      'itemNo',
+      'loadingDate',
+      'weightKg',
+      'grossAmount',
+      'netRevenue',
+      'fuelCost',
+      'totalExpenses',
+      'netProfit',
+    ];
+
+    const orderBy: any[] = [];
+    if (validSortFields.includes(sortBy)) {
+      orderBy.push({ [sortBy]: sortOrder });
+    }
+    if (sortBy !== 'itemNo') {
+      orderBy.push({ itemNo: 'desc' });
+    }
+
     const [total, jobs, aggregations, monthsGroup] = await Promise.all([
       prisma.transportJob.count({ where }),
       prisma.transportJob.findMany({
         where,
-        orderBy: [{ itemNo: 'desc' }, { createdAt: 'desc' }],
+        orderBy,
         skip,
         take: limit,
       }),

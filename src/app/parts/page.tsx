@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Package,
   Plus,
@@ -20,6 +20,9 @@ import {
   FileSpreadsheet,
   Upload,
   Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -33,6 +36,45 @@ export default function PartsInventoryPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [stockStatusFilter, setStockStatusFilter] = useState('')
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<string>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder(field === 'quantity' || field === 'costPerUnit' ? 'desc' : 'asc')
+    }
+  }
+
+  const renderSortIndicator = (field: string) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="w-3 h-3 text-slate-300 ml-1 inline-block" />
+    }
+    return sortOrder === 'desc' ? (
+      <ArrowDown className="w-3.5 h-3.5 text-blue-600 ml-1 inline-block font-bold" />
+    ) : (
+      <ArrowUp className="w-3.5 h-3.5 text-blue-600 ml-1 inline-block font-bold" />
+    )
+  }
+
+  const sortedParts = useMemo(() => {
+    return [...parts].sort((a, b) => {
+      let valA = a[sortBy] ?? ''
+      let valB = b[sortBy] ?? ''
+      if (typeof valA === 'number' || typeof valB === 'number') {
+        const numA = Number(valA) || 0
+        const numB = Number(valB) || 0
+        return sortOrder === 'asc' ? numA - numB : numB - numA
+      }
+      return sortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB), 'th')
+        : String(valB).localeCompare(String(valA), 'th')
+    })
+  }, [parts, sortBy, sortOrder])
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -374,6 +416,27 @@ export default function PartsInventoryPage() {
         </form>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Quick Sort Dropdown */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span>เรียงตาม:</span>
+            <select
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [sb, so] = e.target.value.split('_')
+                setSortBy(sb)
+                setSortOrder(so as 'asc' | 'desc')
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium focus:outline-blue-500"
+            >
+              <option value="quantity_desc">ยอดคงเหลือ: High to Low (มาก → น้อย)</option>
+              <option value="quantity_asc">ยอดคงเหลือ: Low to High (น้อย → มาก)</option>
+              <option value="costPerUnit_desc">ราคาทุน: High to Low (มาก → น้อย)</option>
+              <option value="costPerUnit_asc">ราคาทุน: Low to High (น้อย → มาก)</option>
+              <option value="name_asc">ชื่ออะไหล่: A → Z (ก-ฮ)</option>
+              <option value="code_asc">รหัสอะไหล่: A → Z</option>
+            </select>
+          </div>
+
           {/* Category Dropdown */}
           <select
             value={categoryFilter}
@@ -416,14 +479,38 @@ export default function PartsInventoryPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
+            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200 select-none">
               <tr>
-                <th className="px-5 py-3.5">รหัส / ชื่ออะไหล่</th>
+                <th
+                  onClick={() => handleSort('name')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>รหัส / ชื่ออะไหล่</span>
+                    {renderSortIndicator('name')}
+                  </div>
+                </th>
                 <th className="px-5 py-3.5">หมวดหมู่ / ยี่ห้อ</th>
                 <th className="px-5 py-3.5">รุ่นที่เข้ากันได้</th>
                 <th className="px-5 py-3.5 text-center">ตำแหน่งเก็บ</th>
-                <th className="px-5 py-3.5 text-right">ราคาทุน/หน่วย</th>
-                <th className="px-5 py-3.5 text-right">ยอดคงเหลือ</th>
+                <th
+                  onClick={() => handleSort('costPerUnit')}
+                  className="px-5 py-3.5 text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>ราคาทุน/หน่วย</span>
+                    {renderSortIndicator('costPerUnit')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('quantity')}
+                  className="px-5 py-3.5 text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>ยอดคงเหลือ</span>
+                    {renderSortIndicator('quantity')}
+                  </div>
+                </th>
                 <th className="px-5 py-3.5 text-right">การจัดการ</th>
               </tr>
             </thead>
@@ -434,7 +521,7 @@ export default function PartsInventoryPage() {
                     กำลังโหลดข้อมูลอะไหล่...
                   </td>
                 </tr>
-              ) : parts.length === 0 ? (
+              ) : sortedParts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center">
                     <Package className="h-8 w-8 text-slate-300 mx-auto mb-2" />
@@ -442,7 +529,7 @@ export default function PartsInventoryPage() {
                   </td>
                 </tr>
               ) : (
-                parts.map((p) => {
+                sortedParts.map((p) => {
                   const isOut = p.quantity <= 0
                   const isLow = !isOut && p.quantity <= p.minimumStock
 

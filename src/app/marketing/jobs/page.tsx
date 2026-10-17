@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ClipboardList,
   Search,
@@ -11,6 +12,8 @@ import {
   Trash2,
   Edit,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +21,8 @@ import {
   TrendingDown,
   Receipt,
   Truck,
+  Building2,
+  X,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -36,13 +41,23 @@ const THAI_MONTH_NAMES: Record<string, string> = {
   'ธ.ค.': 'ธันวาคม',
 };
 
-export default function MarketingJobsPage() {
+function MarketingJobsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlInvoiceNo = searchParams.get('invoiceNo') || '';
+  const urlCustomer = searchParams.get('customer') || '';
+  const urlSearch = searchParams.get('search') || '';
+
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [search, setSearch] = useState<string>('');
+  const [search, setSearch] = useState<string>(urlSearch);
+  const [filterInvoiceNo, setFilterInvoiceNo] = useState<string>(urlInvoiceNo);
+  const [filterCustomer, setFilterCustomer] = useState<string>(urlCustomer);
+  const [sortBy, setSortBy] = useState<string>('itemNo');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>(urlInvoiceNo || urlCustomer ? 'all' : '');
+  const [selectedMonth, setSelectedMonth] = useState<string>(urlInvoiceNo || urlCustomer ? 'all' : '');
   const [isSubcontractor, setIsSubcontractor] = useState<string>('');
   const [isPaid, setIsPaid] = useState<string>('');
   const [page, setPage] = useState<number>(1);
@@ -58,6 +73,20 @@ export default function MarketingJobsPage() {
     totalFuelLiters: 0,
   });
 
+  // Sync state if URL query parameters change (e.g. clicked from Billing or Customers)
+  useEffect(() => {
+    const inv = searchParams.get('invoiceNo') || '';
+    const cust = searchParams.get('customer') || '';
+    const s = searchParams.get('search') || '';
+    if (inv !== filterInvoiceNo) setFilterInvoiceNo(inv);
+    if (cust !== filterCustomer) setFilterCustomer(cust);
+    if (s && s !== search) setSearch(s);
+    if (inv || cust) {
+      setSelectedYear('all');
+      setSelectedMonth('all');
+    }
+  }, [searchParams]);
+
   const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
   const monthsInYear = availableMonths.filter(
     (m) => selectedYear === 'all' || !selectedYear || String(m.year) === selectedYear
@@ -69,8 +98,12 @@ export default function MarketingJobsPage() {
       const params = new URLSearchParams({
         page: String(page),
         limit: '30',
+        sortBy,
+        sortOrder,
       });
       if (search) params.set('search', search);
+      if (filterInvoiceNo) params.set('invoiceNo', filterInvoiceNo);
+      if (filterCustomer) params.set('customer', filterCustomer);
 
       if (selectedYear && selectedYear !== 'all') {
         params.set('year', selectedYear);
@@ -95,10 +128,10 @@ export default function MarketingJobsPage() {
           const years = Array.from(new Set(data.availableMonths.map((m: any) => m.year))).sort(
             (a: any, b: any) => b - a
           );
-          if (!selectedYear && years.length > 0) {
+          if (!selectedYear && years.length > 0 && !filterInvoiceNo && !filterCustomer) {
             setSelectedYear(String(years[0]));
           }
-          if (!selectedMonth) {
+          if (!selectedMonth && !filterInvoiceNo && !filterCustomer) {
             setSelectedMonth(data.availableMonths[0].month);
           }
         }
@@ -112,7 +145,24 @@ export default function MarketingJobsPage() {
 
   useEffect(() => {
     fetchJobs();
-  }, [page, selectedYear, selectedMonth, isSubcontractor, isPaid]);
+  }, [page, selectedYear, selectedMonth, isSubcontractor, isPaid, sortBy, sortOrder, filterInvoiceNo, filterCustomer]);
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // High to low by default
+    }
+    setPage(1);
+  };
+
+  const clearFilter = () => {
+    setFilterInvoiceNo('');
+    setFilterCustomer('');
+    router.replace('/marketing/jobs');
+    setPage(1);
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +243,35 @@ export default function MarketingJobsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Quick Sort Dropdown */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs">
+              <ArrowUpDown className="w-3.5 h-3.5 text-purple-600" />
+              <span className="text-gray-500 font-medium">เรียงตาม:</span>
+              <select
+                value={`${sortBy}_${sortOrder}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split('_');
+                  setSortBy(field);
+                  setSortOrder(order as 'desc' | 'asc');
+                  setPage(1);
+                }}
+                className="bg-transparent font-semibold text-gray-800 focus:outline-none cursor-pointer"
+              >
+                <option value="itemNo_desc">ลำดับ: มาก ➔ น้อย (ล่าสุด)</option>
+                <option value="itemNo_asc">ลำดับ: น้อย ➔ มาก (เก่าสุด)</option>
+                <option value="netProfit_desc">กำไรคงเหลือ: มาก ➔ น้อย (High to Low)</option>
+                <option value="netProfit_asc">กำไรคงเหลือ: น้อย ➔ มาก (Low to High / ขาดทุน)</option>
+                <option value="netRevenue_desc">รายรับสุทธิ: มาก ➔ น้อย</option>
+                <option value="netRevenue_asc">รายรับสุทธิ: น้อย ➔ มาก</option>
+                <option value="totalExpenses_desc">รวมค่าใช้จ่าย: มาก ➔ น้อย</option>
+                <option value="totalExpenses_asc">รวมค่าใช้จ่าย: น้อย ➔ มาก</option>
+                <option value="fuelCost_desc">ค่าน้ำมัน: มาก ➔ น้อย</option>
+                <option value="weightKg_desc">น้ำหนัก: มาก ➔ น้อย</option>
+                <option value="loadingDate_desc">วันรับของ: ล่าสุด ➔ เก่าสุด</option>
+                <option value="loadingDate_asc">วันรับของ: เก่าสุด ➔ ล่าสุด</option>
+              </select>
+            </div>
+
             {/* Year Selector */}
             <select
               value={selectedYear}
@@ -296,21 +375,145 @@ export default function MarketingJobsPage() {
         </div>
       </div>
 
+      {/* Active Filter Notice Banner (when navigated from Billing or Customers) */}
+      {(filterInvoiceNo || filterCustomer) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 text-xs shadow-sm">
+          <div className="flex items-center gap-2">
+            {filterInvoiceNo ? (
+              <Receipt className="w-4 h-4 text-purple-600 shrink-0" />
+            ) : (
+              <Building2 className="w-4 h-4 text-purple-600 shrink-0" />
+            )}
+            <span>
+              กำลังกรองเฉพาะเที่ยววิ่งของ{filterInvoiceNo ? 'ใบวางบิล' : 'ลูกค้า'}:{' '}
+              <strong className="font-bold underline">{filterInvoiceNo || filterCustomer}</strong>{' '}
+              (พบ {totalCount} รายการ)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={clearFilter}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-purple-300 text-purple-700 hover:bg-purple-100 font-semibold shadow-xs transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>ล้างตัวกรอง (ดูงานทั้งหมด)</span>
+          </button>
+        </div>
+      )}
+
       {/* Main Transport Jobs Table */}
       <div className="rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-600 font-semibold uppercase tracking-wider">
-                <th className="py-3 px-3 w-12 text-center">#</th>
-                <th className="py-3 px-3 min-w-[90px]">วันรับของ</th>
+              <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-600 font-semibold uppercase tracking-wider select-none">
+                <th className="py-3 px-3 w-16 text-center">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('itemNo')}
+                    className="inline-flex items-center gap-1 hover:text-purple-700 font-bold"
+                    title="คลิกเพื่อเรียงลำดับ"
+                  >
+                    <span>#</span>
+                    {sortBy === 'itemNo' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3 min-w-[95px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('loadingDate')}
+                    className="inline-flex items-center gap-1 hover:text-purple-700"
+                    title="คลิกเพื่อเรียงตามวันรับของ"
+                  >
+                    <span>วันรับของ</span>
+                    {sortBy === 'loadingDate' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
                 <th className="py-3 px-3 min-w-[150px]">ทะเบียน & คนขับ</th>
                 <th className="py-3 px-3 min-w-[180px]">ลูกค้า & เส้นทาง</th>
-                <th className="py-3 px-3 text-right min-w-[80px]">น้ำหนัก</th>
-                <th className="py-3 px-3 text-right min-w-[90px]">รายรับสุทธิ</th>
-                <th className="py-3 px-3 text-right min-w-[90px]">ค่าน้ำมัน</th>
-                <th className="py-3 px-3 text-right min-w-[90px]">ค่าใช้จ่าย</th>
-                <th className="py-3 px-3 text-right min-w-[100px]">คงเหลือสุทธิ</th>
+                <th className="py-3 px-3 text-right min-w-[90px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('weightKg')}
+                    className="inline-flex items-center justify-end w-full gap-1 hover:text-purple-700"
+                    title="คลิกเพื่อเรียงตามน้ำหนัก"
+                  >
+                    <span>น้ำหนัก</span>
+                    {sortBy === 'weightKg' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3 text-right min-w-[105px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('netRevenue')}
+                    className="inline-flex items-center justify-end w-full gap-1 hover:text-purple-700"
+                    title="คลิกเพื่อเรียงตามรายรับสุทธิ"
+                  >
+                    <span>รายรับสุทธิ</span>
+                    {sortBy === 'netRevenue' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3 text-right min-w-[95px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('fuelCost')}
+                    className="inline-flex items-center justify-end w-full gap-1 hover:text-purple-700"
+                    title="คลิกเพื่อเรียงตามค่าน้ำมัน"
+                  >
+                    <span>ค่าน้ำมัน</span>
+                    {sortBy === 'fuelCost' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3 text-right min-w-[100px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('totalExpenses')}
+                    className="inline-flex items-center justify-end w-full gap-1 hover:text-purple-700"
+                    title="คลิกเพื่อเรียงตามค่าใช้จ่าย"
+                  >
+                    <span>ค่าใช้จ่าย</span>
+                    {sortBy === 'totalExpenses' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3 text-right min-w-[120px]">
+                  <button
+                    type="button"
+                    onClick={() => handleSort('netProfit')}
+                    className="inline-flex items-center justify-end w-full gap-1 hover:text-purple-700 font-bold"
+                    title="คลิกเพื่อเรียงตามคงเหลือสุทธิ (High to Low / Low to High)"
+                  >
+                    <span>คงเหลือสุทธิ</span>
+                    {sortBy === 'netProfit' ? (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3.5 h-3.5 text-purple-600" /> : <ArrowUp className="w-3.5 h-3.5 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-300 hover:text-gray-500" />
+                    )}
+                  </button>
+                </th>
                 <th className="py-3 px-3 min-w-[110px]">ใบวางบิล</th>
                 <th className="py-3 px-3 text-center w-20">จัดการ</th>
               </tr>
@@ -447,5 +650,19 @@ export default function MarketingJobsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MarketingJobsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <RefreshCw className="w-6 h-6 animate-spin text-purple-600" />
+        </div>
+      }
+    >
+      <MarketingJobsContent />
+    </Suspense>
   );
 }

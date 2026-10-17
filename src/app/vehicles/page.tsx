@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Car,
   Plus,
@@ -21,6 +21,9 @@ import {
   FileSpreadsheet,
   Upload,
   Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getStatusLabel, getStatusColor, formatDate, formatNumber } from '@/lib/utils'
@@ -31,6 +34,45 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<string>('licensePlate')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder(field === 'currentMileage' ? 'desc' : 'asc')
+    }
+  }
+
+  const renderSortIndicator = (field: string) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="w-3 h-3 text-slate-300 ml-1 inline-block" />
+    }
+    return sortOrder === 'desc' ? (
+      <ArrowDown className="w-3.5 h-3.5 text-blue-600 ml-1 inline-block font-bold" />
+    ) : (
+      <ArrowUp className="w-3.5 h-3.5 text-blue-600 ml-1 inline-block font-bold" />
+    )
+  }
+
+  const sortedVehicles = useMemo(() => {
+    return [...vehicles].sort((a, b) => {
+      let valA = a[sortBy] ?? ''
+      let valB = b[sortBy] ?? ''
+      if (typeof valA === 'number' || typeof valB === 'number') {
+        const numA = Number(valA) || 0
+        const numB = Number(valB) || 0
+        return sortOrder === 'asc' ? numA - numB : numB - numA
+      }
+      return sortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB), 'th')
+        : String(valB).localeCompare(String(valA), 'th')
+    })
+  }, [vehicles, sortBy, sortOrder])
 
   // Modal Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -304,28 +346,51 @@ export default function VehiclesPage() {
           />
         </form>
 
-        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <Filter className="h-4 w-4 text-slate-400 shrink-0" />
-          {[
-            { id: '', label: 'ทั้งหมด' },
-            { id: 'active', label: 'พร้อมใช้งาน' },
-            { id: 'repairing', label: 'กำลังซ่อม' },
-            { id: 'waiting_repair', label: 'รอซ่อม' },
-            { id: 'inactive', label: 'หยุดใช้งาน' },
-            { id: 'decommissioned', label: 'จำหน่ายออก' },
-          ].map((st) => (
-            <button
-              key={st.id}
-              onClick={() => setStatusFilter(st.id)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 transition ${
-                statusFilter === st.id
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Quick Sort Dropdown */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span>เรียงตาม:</span>
+            <select
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [sb, so] = e.target.value.split('_')
+                setSortBy(sb)
+                setSortOrder(so as 'asc' | 'desc')
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-medium focus:outline-blue-500"
             >
-              {st.label}
-            </button>
-          ))}
+              <option value="currentMileage_desc">เลขไมล์: High to Low (มาก → น้อย)</option>
+              <option value="currentMileage_asc">เลขไมล์: Low to High (น้อย → มาก)</option>
+              <option value="licensePlate_asc">ทะเบียนรถ: A → Z (ก-ฮ)</option>
+              <option value="licensePlate_desc">ทะเบียนรถ: Z → A (ฮ-ก)</option>
+              <option value="brand_asc">ยี่ห้อ/รุ่น (A-Z)</option>
+              <option value="status_asc">สถานะการใช้งาน</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            <Filter className="h-4 w-4 text-slate-400 shrink-0" />
+            {[
+              { id: '', label: 'ทั้งหมด' },
+              { id: 'active', label: 'พร้อมใช้งาน' },
+              { id: 'repairing', label: 'กำลังซ่อม' },
+              { id: 'waiting_repair', label: 'รอซ่อม' },
+              { id: 'inactive', label: 'หยุดใช้งาน' },
+              { id: 'decommissioned', label: 'จำหน่ายออก' },
+            ].map((st) => (
+              <button
+                key={st.id}
+                onClick={() => setStatusFilter(st.id)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 transition ${
+                  statusFilter === st.id
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -333,13 +398,53 @@ export default function VehiclesPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
+            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200 select-none">
               <tr>
-                <th className="px-5 py-3.5">ทะเบียนรถ / รหัส</th>
-                <th className="px-5 py-3.5">ยี่ห้อ / รุ่น / ประเภท</th>
-                <th className="px-5 py-3.5">หน่วยงาน / ผู้รับผิดชอบ</th>
-                <th className="px-5 py-3.5">เลขไมล์ล่าสุด</th>
-                <th className="px-5 py-3.5">สถานะ</th>
+                <th
+                  onClick={() => handleSort('licensePlate')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>ทะเบียนรถ / รหัส</span>
+                    {renderSortIndicator('licensePlate')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('brand')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>ยี่ห้อ / รุ่น / ประเภท</span>
+                    {renderSortIndicator('brand')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('department')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>หน่วยงาน / ผู้รับผิดชอบ</span>
+                    {renderSortIndicator('department')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('currentMileage')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>เลขไมล์ล่าสุด</span>
+                    {renderSortIndicator('currentMileage')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('status')}
+                  className="px-5 py-3.5 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>สถานะ</span>
+                    {renderSortIndicator('status')}
+                  </div>
+                </th>
                 <th className="px-5 py-3.5 text-right">การจัดการ</th>
               </tr>
             </thead>
@@ -350,7 +455,7 @@ export default function VehiclesPage() {
                     กำลังโหลดข้อมูล...
                   </td>
                 </tr>
-              ) : vehicles.length === 0 ? (
+              ) : sortedVehicles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-12 text-center">
                     <Car className="h-8 w-8 text-slate-300 mx-auto mb-2" />
@@ -361,7 +466,7 @@ export default function VehiclesPage() {
                   </td>
                 </tr>
               ) : (
-                vehicles.map((v) => (
+                sortedVehicles.map((v) => (
                   <tr key={v.id} className="hover:bg-slate-50 transition">
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-800 text-base">{v.licensePlate}</div>
