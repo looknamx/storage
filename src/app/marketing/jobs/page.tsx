@@ -552,7 +552,15 @@ function MarketingJobsContent() {
                         ฿{formatCurrency(job.netRevenue || job.grossAmount)}
                       </td>
                       <td className="py-3 px-3 text-right font-medium text-blue-700">
-                        {job.fuelCost > 0 ? `฿${formatCurrency(job.fuelCost)}` : '-'}
+                        {job.fuelCost > 0 ? (
+                          `฿${formatCurrency(job.fuelCost)}`
+                        ) : job.subcontractorFuelCost > 0 ? (
+                          `฿${formatCurrency(job.subcontractorFuelCost)}`
+                        ) : job.fuelLiters > 0 && job.fuelPricePerLiter > 0 ? (
+                          `฿${formatCurrency(job.fuelLiters * job.fuelPricePerLiter)}`
+                        ) : (
+                          '-'
+                        )}
                       </td>
                       <td className="py-3 px-3 text-right font-medium text-rose-700">
                         ฿{formatCurrency(job.totalExpenses)}

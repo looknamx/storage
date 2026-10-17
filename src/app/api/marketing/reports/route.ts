@@ -59,6 +59,15 @@ export async function GET(req: NextRequest) {
     }
     // period === 'all' -> no date filter
 
+    const getFuelCost = (j: any): number => {
+      if (j.fuelCost && j.fuelCost > 0) return j.fuelCost;
+      if (j.subcontractorFuelCost && j.subcontractorFuelCost > 0) return j.subcontractorFuelCost;
+      if (j.fuelLiters && j.fuelPricePerLiter && j.fuelLiters > 0 && j.fuelPricePerLiter > 0) {
+        return Number((j.fuelLiters * j.fuelPricePerLiter).toFixed(2));
+      }
+      return 0;
+    };
+
     let reportData: any[] = [];
 
     switch (reportType) {
@@ -81,7 +90,7 @@ export async function GET(req: NextRequest) {
           เลขที่ใบชั่ง: j.weightTicketNo || '-',
           'น้ำหนัก (ตัน)': j.weightKg ? (j.weightKg / 1000).toFixed(2) : '0',
           รายรับสุทธิ: j.netRevenue,
-          ค่าน้ำมัน: j.fuelCost,
+          ค่าน้ำมัน: getFuelCost(j),
           ค่าใช้จ่ายคนขับ: j.totalExpenses,
           คงเหลือสุทธิ: j.netProfit,
           เลขที่ใบวางบิล: j.invoiceNo || '-',
@@ -119,7 +128,7 @@ export async function GET(req: NextRequest) {
           monthGroups[key].รายรับรวม += j.grossAmount || 0;
           monthGroups[key]['ภาษีหัก ณ ที่จ่าย 1%'] += j.withholdingTax || 0;
           monthGroups[key].รายรับสุทธิ += j.netRevenue || 0;
-          monthGroups[key].ค่าน้ำมันรวม += j.fuelCost || 0;
+          monthGroups[key].ค่าน้ำมันรวม += getFuelCost(j);
           monthGroups[key].ค่าใช้จ่ายรวม += j.totalExpenses || 0;
           monthGroups[key].กำไรสุทธิรวม += j.netProfit || 0;
         }
@@ -198,7 +207,7 @@ export async function GET(req: NextRequest) {
           custMap[cust].ยอดเงินรวม += j.grossAmount || 0;
           custMap[cust]['ภาษีหัก ณ ที่จ่าย'] += j.withholdingTax || 0;
           custMap[cust].ยอดรับสุทธิ += j.netRevenue || 0;
-          custMap[cust].ค่าน้ำมันรวม += j.fuelCost || 0;
+          custMap[cust].ค่าน้ำมันรวม += getFuelCost(j);
           custMap[cust].กำไรสุทธิ += j.netProfit || 0;
         }
 
@@ -234,7 +243,7 @@ export async function GET(req: NextRequest) {
           vehicleMap[plate].จำนวนเที่ยว += 1;
           vehicleMap[plate]['ระยะทางรวม (กม.)'] += j.distanceKm || 0;
           vehicleMap[plate]['น้ำมันรวม (ลิตร)'] += j.fuelLiters || 0;
-          vehicleMap[plate].ค่าน้ำมันรวม += j.fuelCost || 0;
+          vehicleMap[plate].ค่าน้ำมันรวม += getFuelCost(j);
         }
 
         reportData = Object.values(vehicleMap).map((v: any) => {
@@ -304,7 +313,7 @@ export async function GET(req: NextRequest) {
           driverMap[d]['น้ำหนักรวม (ตัน)'] += (j.weightKg || 0) / 1000;
           driverMap[d]['ระยะทางรวม (กม.)'] += j.distanceKm || 0;
           driverMap[d].เบี้ยเลี้ยงและค่าเที่ยวรวม += (j.expenseAllowance || 0) + (j.expenseLoadingUnloading || 0);
-          driverMap[d].ค่าน้ำมันที่ใช้ += j.fuelCost || 0;
+          driverMap[d].ค่าน้ำมันที่ใช้ += getFuelCost(j);
         }
 
         reportData = Object.values(driverMap)

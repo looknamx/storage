@@ -114,8 +114,14 @@ export async function POST(req: NextRequest) {
 
     const headers: string[] = (rows[headerRowIdx] || []).map(h => String(h || '').trim());
 
-    // Helper to find column index by matching one or more keywords
+    // Helper to find column index by matching one or more keywords (exact match preferred)
     const colOf = (...keywords: string[]): number => {
+      // 1. Exact match first
+      for (const kw of keywords) {
+        const idx = headers.findIndex(h => h === kw);
+        if (idx !== -1) return idx;
+      }
+      // 2. Contains match
       for (const kw of keywords) {
         const idx = headers.findIndex(h => h.includes(kw));
         if (idx !== -1) return idx;
@@ -150,6 +156,22 @@ export async function POST(req: NextRequest) {
     const cRatePerTon = colOf('ราคาต่อตัน') !== -1 ? colOf('ราคาต่อตัน') : 25;
     const cGrossAmount = colOf('จำนวนเงิน(น้ำหนัก/เหมา)', 'จำนวนเงิน') !== -1 ? colOf('จำนวนเงิน(น้ำหนัก/เหมา)', 'จำนวนเงิน') : 26;
     const cWithholdingTax = colOf('หัก ณ ที่จ่าย 1%', 'หัก ณ ที่จ่าย') !== -1 ? colOf('หัก ณ ที่จ่าย 1%', 'หัก ณ ที่จ่าย') : 27;
+
+    // Subcontractor specific columns
+    const cSubRate = colOf('ราคาต่อตันให้รถร่วม') !== -1 ? colOf('ราคาต่อตันให้รถร่วม') : 28;
+    const cCommission = colOf('จ่ายค่านายหน้า', 'ค่านายหน้า') !== -1 ? colOf('จ่ายค่านายหน้า', 'ค่านายหน้า') : 29;
+    const cSubDiff = colOf('ส่วนต่างรถร่วมที่ต้องจ่าย', 'ส่วนต่างรถร่วม') !== -1 ? colOf('ส่วนต่างรถร่วมที่ต้องจ่าย', 'ส่วนต่างรถร่วม') : 30;
+    const cSubFuelCost = headers.findIndex(h => h.includes('ค่าน้ำมัน') && h.includes('รถร่วม')) !== -1
+      ? headers.findIndex(h => h.includes('ค่าน้ำมัน') && h.includes('รถร่วม'))
+      : 31;
+    const cSubWht = colOf('หัก ณ ที่จ่ายรถร่วม') !== -1 ? colOf('หัก ณ ที่จ่ายรถร่วม') : 32;
+    const cSubLiters = headers.findIndex(h => h.includes('น้ำมัน') && h.includes('รถร่วม') && !h.includes('ค่า') && !h.includes('ราคา')) !== -1
+      ? headers.findIndex(h => h.includes('น้ำมัน') && h.includes('รถร่วม') && !h.includes('ค่า') && !h.includes('ราคา'))
+      : 34;
+    const cSubPrice = headers.findIndex(h => h.includes('ราคาน้ำมัน') && h.includes('รถร่วม')) !== -1
+      ? headers.findIndex(h => h.includes('ราคาน้ำมัน') && h.includes('รถร่วม'))
+      : 35;
+
     const cNetRevenue = colOf('จำนวนเงินสุทธิ') !== -1 ? colOf('จำนวนเงินสุทธิ') : 33;
     const cOdometerStart = colOf('เลขไมท์ก่อนไป', 'ไมล์ก่อน') !== -1 ? colOf('เลขไมท์ก่อนไป', 'ไมล์ก่อน') : 37;
     const cOdometerEnd = colOf('เลขไมท์กลับมา', 'ไมล์กลับ') !== -1 ? colOf('เลขไมท์กลับมา', 'ไมล์กลับ') : 38;
@@ -157,7 +179,10 @@ export async function POST(req: NextRequest) {
     const cFuelLiters = colOf('เติมน้ำมัน(ลิตร)', 'เติมน้ำมัน') !== -1 ? colOf('เติมน้ำมัน(ลิตร)', 'เติมน้ำมัน') : 40;
     const cFuelEfficiency = colOf('กม./ลิตร') !== -1 ? colOf('กม./ลิตร') : 41;
     const cFuelPricePerLiter = colOf('ราคาต่อลิตร') !== -1 ? colOf('ราคาต่อลิตร') : 42;
-    const cFuelCost = colOf('ค่าน้ำมันรถ', 'ค่าน้ำมัน') !== -1 ? colOf('ค่าน้ำมันรถ', 'ค่าน้ำมัน') : 43;
+    // For company truck fuel cost, ensure we do NOT pick up 'ค่าน้ำมันรถร่วม'
+    const cFuelCost = headers.findIndex(h => h === 'ค่าน้ำมันรถ' || (h.includes('ค่าน้ำมัน') && !h.includes('รถร่วม'))) !== -1
+      ? headers.findIndex(h => h === 'ค่าน้ำมันรถ' || (h.includes('ค่าน้ำมัน') && !h.includes('รถร่วม')))
+      : 43;
     const cExpenseLoading = colOf('ขึ้น ลง') !== -1 ? colOf('ขึ้น ลง') : 44;
     const cExpenseFuelSaving = colOf('พิเศษ(เซฟน้ำมัน)', 'เซฟน้ำมัน') !== -1 ? colOf('พิเศษ(เซฟน้ำมัน)', 'เซฟน้ำมัน') : 45;
     const cExpenseExtraBonus = colOf('พิเศษ+เพิ่ม') !== -1 ? colOf('พิเศษ+เพิ่ม') : 46;
@@ -272,6 +297,20 @@ export async function POST(req: NextRequest) {
 
       const rowMonth = (r[cJobMonth] || '').toString().trim() || detectedMonth;
 
+      let rowFuelCost = parseN(r[cFuelCost]);
+      const rowFuelLiters = parseN(r[cFuelLiters]);
+      const rowFuelPrice = parseN(r[cFuelPricePerLiter]);
+      if (rowFuelCost === 0 && rowFuelLiters > 0 && rowFuelPrice > 0) {
+        rowFuelCost = Number((rowFuelLiters * rowFuelPrice).toFixed(2));
+      }
+
+      let rowSubFuelCost = cSubFuelCost !== -1 ? parseN(r[cSubFuelCost]) : 0;
+      const rowSubLiters = cSubLiters !== -1 ? parseN(r[cSubLiters]) : 0;
+      const rowSubPrice = cSubPrice !== -1 ? parseN(r[cSubPrice]) : 0;
+      if (rowSubFuelCost === 0 && rowSubLiters > 0 && rowSubPrice > 0) {
+        rowSubFuelCost = Number((rowSubLiters * rowSubPrice).toFixed(2));
+      }
+
       jobsToCreate.push({
         itemNo,
         jobMonth: rowMonth,
@@ -288,6 +327,13 @@ export async function POST(req: NextRequest) {
         isPaid: (r[cPaid] || '').toString().trim().toLowerCase().includes('ใช่') || (r[cPaid] || '').toString().trim().toUpperCase() === 'OK',
         paymentDate: parseDate(r[cPaidDate]),
         isSubcontractor: !!(r[cSubcontractor] || '').toString().trim(),
+        subcontractorRate: cSubRate !== -1 ? parseN(r[cSubRate]) : 0,
+        commission: cCommission !== -1 ? parseN(r[cCommission]) : 0,
+        subcontractorDiff: cSubDiff !== -1 ? parseN(r[cSubDiff]) : 0,
+        subcontractorFuelCost: rowSubFuelCost,
+        subcontractorWht: cSubWht !== -1 ? parseN(r[cSubWht]) : 0,
+        subcontractorFuelLiters: rowSubLiters,
+        subcontractorFuelPrice: rowSubPrice,
         vehicleType: (r[cVehicleType] || '').toString().trim() || 'รถพ่วง/เทรลเลอร์',
         licensePlate: licensePlate || 'ไม่ระบุ',
         driverName: driverName || 'ไม่ระบุ',
@@ -306,10 +352,10 @@ export async function POST(req: NextRequest) {
         odometerStart: parseN(r[cOdometerStart]),
         odometerEnd: parseN(r[cOdometerEnd]),
         distanceKm: parseN(r[cDistanceKm]),
-        fuelLiters: parseN(r[cFuelLiters]),
+        fuelLiters: rowFuelLiters,
         fuelEfficiency: parseN(r[cFuelEfficiency]),
-        fuelPricePerLiter: parseN(r[cFuelPricePerLiter]),
-        fuelCost: parseN(r[cFuelCost]),
+        fuelPricePerLiter: rowFuelPrice,
+        fuelCost: rowFuelCost,
         expenseLoadingUnloading: parseN(r[cExpenseLoading]),
         expenseFuelSavingBonus: parseN(r[cExpenseFuelSaving]),
         expenseExtraBonus: parseN(r[cExpenseExtraBonus]),
