@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Fuel,
@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Search,
   ArrowUpRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 const THAI_MONTH_NAMES: Record<string, string> = {
@@ -35,6 +38,10 @@ export default function MarketingFuelReportPage() {
   const [availableMonths, setAvailableMonths] = useState<{ month: string; year: number; count: number }[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<string>('avgEfficiency');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const availableYears = Array.from(new Set(availableMonths.map((m) => m.year))).sort((a, b) => b - a);
   const monthsInYear = availableMonths.filter(
@@ -100,7 +107,6 @@ export default function MarketingFuelReportPage() {
           };
         });
 
-        list.sort((a, b) => b.avgEfficiency - a.avgEfficiency);
         setVehicles(list);
       }
     } catch (e) {
@@ -114,6 +120,26 @@ export default function MarketingFuelReportPage() {
     fetchFuelStats();
   }, [selectedYear, selectedMonth]);
 
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const renderSortIndicator = (field: string) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="w-3 h-3 text-gray-300 ml-1 inline-block" />;
+    }
+    return sortOrder === 'desc' ? (
+      <ArrowDown className="w-3.5 h-3.5 text-purple-600 ml-1 inline-block font-bold" />
+    ) : (
+      <ArrowUp className="w-3.5 h-3.5 text-purple-600 ml-1 inline-block font-bold" />
+    );
+  };
+
   const formatNumber = (val: number) => {
     return new Intl.NumberFormat('th-TH').format(Math.round(val || 0));
   };
@@ -122,11 +148,32 @@ export default function MarketingFuelReportPage() {
     return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(val || 0);
   };
 
-  const filtered = vehicles.filter(
-    (v) =>
-      v.plate.toLowerCase().includes(search.toLowerCase()) ||
-      v.driverName.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter & Sort
+  const sortedAndFiltered = useMemo(() => {
+    let list = vehicles.filter(
+      (v) =>
+        v.plate.toLowerCase().includes(search.toLowerCase()) ||
+        v.driverName.toLowerCase().includes(search.toLowerCase())
+    );
+
+    list.sort((a, b) => {
+      let valA = a[sortBy] ?? '';
+      let valB = b[sortBy] ?? '';
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      }
+      return sortOrder === 'asc'
+        ? String(valA).localeCompare(String(valB), 'th')
+        : String(valB).localeCompare(String(valA), 'th');
+    });
+
+    return list;
+  }, [vehicles, search, sortBy, sortOrder]);
+
+  // Top 3 fuel-saving vehicles based on pure efficiency
+  const topSavingVehicles = useMemo(() => {
+    return [...vehicles].sort((a, b) => b.avgEfficiency - a.avgEfficiency).slice(0, 3);
+  }, [vehicles]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -141,7 +188,7 @@ export default function MarketingFuelReportPage() {
               วิเคราะห์การใช้น้ำมันและอัตราสิ้นเปลือง (กม./ลิตร)
             </h1>
             <p className="text-xs text-gray-500">
-              Fuel Consumption & Efficiency Leaderboard across Fleet
+              Fuel Consumption & Efficiency Leaderboard across Fleet ({vehicles.length} คัน)
             </p>
           </div>
         </div>
@@ -150,15 +197,16 @@ export default function MarketingFuelReportPage() {
           type="button"
           onClick={fetchFuelStats}
           title="รีเฟรชข้อมูล"
-          className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors shadow-sm self-start sm:self-auto"
+          className="p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors shadow-sm self-start sm:self-auto flex items-center gap-2 text-xs font-semibold"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span>รีเฟรช</span>
         </button>
       </div>
 
       {/* Top 3 Fuel Saving Trucks */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {vehicles.slice(0, 3).map((v, idx) => (
+        {topSavingVehicles.map((v, idx) => (
           <div
             key={v.plate}
             className="p-5 rounded-2xl bg-gradient-to-br from-purple-500/5 via-indigo-500/5 to-white border border-purple-200/80 shadow-sm relative overflow-hidden"
@@ -187,20 +235,46 @@ export default function MarketingFuelReportPage() {
         ))}
       </div>
 
-      {/* Search & Month Filter Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:flex-1">
+      {/* Search, Sort Dropdown & Month Filter Bar */}
+      <div className="p-4 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+        <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหาทะเบียนรถ หรือชื่อคนขับ..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Sort Dropdown */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-xs">
+            <span className="text-gray-500 font-medium">เรียงตาม:</span>
+            <select
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [sb, so] = e.target.value.split('_');
+                setSortBy(sb);
+                setSortOrder(so as 'asc' | 'desc');
+              }}
+              className="bg-transparent font-semibold text-gray-800 focus:outline-none cursor-pointer"
+            >
+              <option value="avgEfficiency_desc">อัตราสิ้นเปลือง: High to Low (ประหยัดสุด → กินน้ำมัน)</option>
+              <option value="avgEfficiency_asc">อัตราสิ้นเปลือง: Low to High (กินน้ำมัน → ประหยัดสุด)</option>
+              <option value="totalFuelCost_desc">ค่าน้ำมันรวม: High to Low (มาก → น้อย)</option>
+              <option value="totalFuelCost_asc">ค่าน้ำมันรวม: Low to High (น้อย → มาก)</option>
+              <option value="totalDistance_desc">ระยะทางรวม: High to Low (มาก → น้อย)</option>
+              <option value="totalDistance_asc">ระยะทางรวม: Low to High (น้อย → มาก)</option>
+              <option value="costPerKm_desc">ต้นทุนเฉลี่ย/กม.: High to Low (มาก → น้อย)</option>
+              <option value="costPerKm_asc">ต้นทุนเฉลี่ย/กม.: Low to High (น้อย → มาก)</option>
+              <option value="trips_desc">จำนวนเที่ยว: High to Low (มาก → น้อย)</option>
+              <option value="trips_asc">จำนวนเที่ยว: Low to High (น้อย → มาก)</option>
+              <option value="plate_asc">ทะเบียนรถ: A → Z (ก-ฮ)</option>
+            </select>
+          </div>
+
           {/* Year Selector */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500 font-semibold shrink-0">ปี:</span>
@@ -242,21 +316,77 @@ export default function MarketingFuelReportPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-gray-600 font-semibold uppercase tracking-wider">
-                <th className="py-3 px-4 w-12 text-center">อันดับ</th>
-                <th className="py-3 px-4">ทะเบียนรถ & คนขับ</th>
-                <th className="py-3 px-4 text-center">จำนวนเที่ยว</th>
-                <th className="py-3 px-4 text-right">ระยะทางรวม</th>
-                <th className="py-3 px-4 text-right">เติมน้ำมันรวม</th>
-                <th className="py-3 px-4 text-right">อัตราสิ้นเปลือง</th>
-                <th className="py-3 px-4 text-right">ค่าน้ำมันรวม</th>
-                <th className="py-3 px-4 text-right">ต้นทุนเฉลี่ย/กม.</th>
+              <tr className="border-b border-gray-200 bg-gray-50 text-gray-600 font-semibold uppercase tracking-wider select-none">
+                <th className="py-3 px-4 w-12 text-center">#</th>
+                <th
+                  onClick={() => handleSort('plate')}
+                  className="py-3 px-4 cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <span>ทะเบียนรถ & คนขับ</span>
+                    {renderSortIndicator('plate')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('trips')}
+                  className="py-3 px-4 text-center cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-center">
+                    <span>จำนวนเที่ยว</span>
+                    {renderSortIndicator('trips')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('totalDistance')}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>ระยะทางรวม</span>
+                    {renderSortIndicator('totalDistance')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('totalFuelLiters')}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>เติมน้ำมันรวม</span>
+                    {renderSortIndicator('totalFuelLiters')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('avgEfficiency')}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>อัตราสิ้นเปลือง</span>
+                    {renderSortIndicator('avgEfficiency')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('totalFuelCost')}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>ค่าน้ำมันรวม</span>
+                    {renderSortIndicator('totalFuelCost')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('costPerKm')}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center justify-end">
+                    <span>ต้นทุนเฉลี่ย/กม.</span>
+                    {renderSortIndicator('costPerKm')}
+                  </div>
+                </th>
                 <th className="py-3 px-4 text-center">ดูงานวิ่ง</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length > 0 ? (
-                filtered.map((v, i) => {
+              {sortedAndFiltered.length > 0 ? (
+                sortedAndFiltered.map((v, i) => {
                   const isTopTier = v.avgEfficiency >= 3.5;
                   const isWarning = v.avgEfficiency > 0 && v.avgEfficiency < 3.0;
 
@@ -323,4 +453,3 @@ export default function MarketingFuelReportPage() {
     </div>
   );
 }
-
