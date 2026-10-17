@@ -299,7 +299,7 @@ export default function JobOrderForm({ initialData, isEdit = false }: JobOrderFo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-12 max-w-5xl mx-auto">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

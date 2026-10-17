@@ -304,7 +304,7 @@ export default function StockOutPage() {
 
       {/* TAB 1: Issue Form */}
       {activeTab === 'issue' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-4xl">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <form onSubmit={handleSubmitIssue} className="space-y-6">
             <h2 className="text-base font-bold text-slate-800 border-b pb-3">
               สร้างใบเบิกอะไหล่ (ผูกกับรถและใบงานซ่อม)

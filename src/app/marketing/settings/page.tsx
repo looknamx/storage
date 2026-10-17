@@ -164,7 +164,7 @@ export default function MarketingSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h1>
